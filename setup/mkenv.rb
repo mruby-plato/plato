@@ -55,7 +55,8 @@ puts "instdir: '#{instdir}'"
 
 ## Plato UI
 puts 'build Plato UI...'
-`cd #{File.join(srcroot, PLATO_UI)}; make init; make #{$platform}`
+# `cd #{File.join(srcroot, PLATO_UI)}; make init; make #{$platform}`
+`make -C #{File.join(srcroot, PLATO_UI)} #{$platform}`
 
 exit
 
