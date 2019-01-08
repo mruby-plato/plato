@@ -58,19 +58,18 @@ puts 'build Plato UI...'
 # `cd #{File.join(srcroot, PLATO_UI)}; make init; make #{$platform}`
 `make -C #{File.join(srcroot, PLATO_UI)} #{$platform}`
 
-exit
-
 ###############################
 
-# $PLATO/.plato
-#   plato.sh
-#   plato.bat
-puts 'copy shells...'
-[ File.join(srcroot, 'plato', 'plato.bat'),
-  File.join(srcroot, 'plato', 'plato.sh')
-].each {|file|
-  _cp(file, File.join(instdir, File.basename(file)))
-}
+# # $PLATO/.plato
+# #   plato.sh
+# #   plato.bat
+# puts 'copy shells...'
+# [ File.join(srcroot, 'plato', 'plato.bat'),
+#   File.join(srcroot, 'plato', 'plato.sh')
+# ].each {|file|
+#   _cp(file, File.join(instdir, File.basename(file)))
+# }
+
 
 # $PLATO/.plato/tools
 #   boxmrbgem.rb
@@ -87,20 +86,22 @@ _plato_dir = File.join(instdir, '.plato')
 tools_dir = File.join(_plato_dir, 'tools')
 FileUtils.rm_rf(tools_dir)
 FileUtils.mkdir_p(tools_dir)
-[ File.join(srcroot, 'plato', 'tools', 'boxmgem', 'boxmrbgem.rb'),
-  File.join(srcroot, 'plato', 'tools', 'boxmgem', 'mkmrblib.rb'),
-  File.join(srcroot, 'plato', 'tools', 'mrbwriter', 'mrbwriter.rb'),
-  File.join(srcroot, 'plato', 'tools', 'mrbwriter', 'mrbwriter' + $exe),
-  File.join(srcroot, 'plato', 'tools', 'mrbwriter', 'mrbwriter.cfg'),
-  File.join(srcroot, 'plato', 'tools', 'mrbwriter', 'receiver.rb'),
+[
+  # File.join(srcroot, 'plato', 'tools', 'boxmgem', 'boxmrbgem.rb'),
+  # File.join(srcroot, 'plato', 'tools', 'boxmgem', 'mkmrblib.rb'),
+  # File.join(srcroot, 'plato', 'tools', 'mrbwriter', 'mrbwriter.rb'),
+  # File.join(srcroot, 'plato', 'tools', 'mrbwriter', 'mrbwriter' + $exe),
+  # File.join(srcroot, 'plato', 'tools', 'mrbwriter', 'mrbwriter.cfg'),
+  # File.join(srcroot, 'plato', 'tools', 'mrbwriter', 'receiver.rb'),
   File.join(srcroot, 'plato', 'tools', 'prjmaker', 'prjmaker.rb'),
-  File.join(srcroot, 'plato', 'tools', 'bin', 'enzic' + $exe),
-  File.join(srcroot, 'plato', 'tools', 'bin', 'mrbc130' + $exe)
+  # File.join(srcroot, 'plato', 'tools', 'bin', 'enzic' + $exe),
+  # File.join(srcroot, 'plato', 'tools', 'bin', 'mrbc130' + $exe)
 ].each {|file|
   _cp(file, File.join(tools_dir, File.basename(file)))
 }
 # tools/mgemlist
-_cp(File.join(srcroot, 'plato', 'tools', 'boxmgem', 'mgemlist'), File.join(tools_dir, 'mgemlist'))
+# _cp(File.join(srcroot, 'plato', 'tools', 'boxmgem', 'mgemlist'), File.join(tools_dir, 'mgemlist'))
+
 
 # $PLATO/.plato/prjbase
 #   Rakefile
@@ -110,6 +111,10 @@ puts 'copy skelton files...'
 prjbase_src = File.join(srcroot, 'plato', 'tools', 'prjmaker', 'prjbase')
 FileUtils.rm_rf(File.join(_plato_dir, 'prjbase'))
 _cp(prjbase_src, _plato_dir)
+
+###############################
+exit
+###############################
 
 # $PLATO/mrbgems
 puts 'copy mrbgems...'
