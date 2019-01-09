@@ -8,7 +8,26 @@
 require 'fileutils'
 require 'json'
 require 'erb'
+require 'logger'
 # require 'resolv'
+
+#
+# functions
+#
+
+# tab
+def tab(str, n=1, chr='  ')
+  chr * n + str
+end
+
+$logger = Logger.new(STDOUT)
+$logger.level = Logger::DEBUG if $DEBUG
+
+begin
+
+#
+# main
+#
 
 # Check argument
 if ARGV.size < 1
@@ -19,14 +38,7 @@ EOS
   exit(1)
 end
 
-if $DEBUG
-  puts <<"EOS"
---------------------------------------
-prjmaker.rb #{ARGV[0]}
---------------------------------------
-EOS
-end
-
+$logger.debug "prjmaker.rb #{ARGV[0]}"
 app_path = ARGV[0]
 
 # Get Plato environment ($HOME/.plato/plato2.cfg)
@@ -36,7 +48,7 @@ begin
 rescue
   env = {}
 end
-puts "env: #{env}" if $DEBUG
+$logger.debug "env: #{env}"
 
 # Get platform
 $platform = case RUBY_PLATFORM.downcase
@@ -49,20 +61,25 @@ when /linux/
 else
   :other
 end
-puts "platform: #{$platform}" if $DEBUG
+$logger.debug "platform: #{$platform}"
 
 # Get project root directory
 homedir = $platform == :windows ? 'C:' : Dir.home
 platoroot = env['instdir'] ? env['instdir'] : File.join(homedir, 'plato2')
-puts "platoroot: #{platoroot}" if $DEBUG
+$logger.debug "platoroot: #{platoroot}"
+
+# re-init logger
+$logger = Logger.new(File.join(platoroot, '.plato', 'plato2.log'))
+$logger.level = Logger::DEBUG if $DEBUG
+
 # Get project base directory (plato2/.plato/prjbase)
 $prjbase = File.join(platoroot, '.plato', 'prjbase')
 
 # Load application configuration
 app_json = File.join(app_path, 'app.json');
 appcfg = JSON::parse(File.read(app_json))
-puts "app.json: #{app_json}" if $DEBUG
-puts "appcfg: #{appcfg}" if $DEBUG
+$logger.debug "app.json: #{app_json}"
+$logger.debug "appcfg: #{appcfg}"
 
 # Make project directories
 prjdir = File.join(platoroot, appcfg['name'].gsub(' ', '_'))
@@ -71,7 +88,7 @@ libdir = File.join(prjdir, 'mrblib')
 [prjdir, bindir, libdir].each {|dir|
   FileUtils.mkdir_p(dir) unless File.exist?(dir)
 }
-puts "prjdir: #{prjdir}" if $DEBUG
+$logger.info "App.dir: #{prjdir}"
 
 # Copy files into project directory
 [
@@ -86,10 +103,58 @@ puts "prjdir: #{prjdir}" if $DEBUG
 # Make app_edge.rb
 #
 
+# build up IoTJob's sensors
+def build_job_sensor(sen, t)
+  tab('ISensor.new(:' + sen['type'] + '),', t)
+end
+
+# build up IoTJob's timings
+def build_job_timing(tim, t)
+  tab('ITiming.new(:' + tim['type'] + '),', t)
+end
+
+# build up IoTJob's actions
+def build_job_action(act, t)
+  tab('IAction.new(:' + act['type'] + '),', t)
+end
+
+# build up IoTJobs
+def build_job(job, t=1)
+  ja = []
+  ja << tab('IoTJob.new(', t)
+  ja <<   tab(job['name'].inspect + ',', t+1)
+  ja <<   tab('[', t+1)
+  job['sensor'].each {|sen|
+    ja <<   build_job_sensor(sen, t+2)
+  }
+  ja <<   tab('],', t+1)
+  ja <<   tab('[', t+1)
+  job['timing'].each {|tim|
+    ja <<   build_job_sensor(tim, t+2)
+  }
+  ja <<   tab('],', t+1)
+  ja <<   tab('[', t+1)
+  job['action'].each {|act|
+    ja <<   build_job_sensor(act, t+2)
+  }
+  ja <<   tab(']', t+1)
+  ja << tab('),', t)
+  ja.join("\n")
+end
+
 jobs = appcfg['jobList']
-jobs.each {|job|
+# jobs.each {|job|
+#   puts "job: #{job['name']}"
+# }
+job_list = jobs.map() {|job|
   puts "job: #{job['name']}"
-}
+  build_job(job)
+}.join("\n")
+
+appscript = ERB.new(File.read(File.join($prjbase, 'app_edge.erb'))).result
+app_edge_rb = File.join(prjdir, 'app_edge.rb')
+File.write(app_edge_rb, appscript)
+$logger.info "`#{app_edge_rb}` is written."
 
 #
 # Make app_bridge.rb
@@ -97,8 +162,21 @@ jobs.each {|job|
 
 appscript = ERB.new(File.read(File.join($prjbase, 'app_bridge.erb'))).result
 # puts appscript if $DEBUG
-apprb = File.join(prjdir, 'app_bridge.rb')
-File.write(apprb, appscript)
+app_bridge_rb = File.join(prjdir, 'app_bridge.rb')
+File.write(app_bridge_rb, appscript)
+$logger.info "`#{app_bridge_rb}` is written."
+
+#
+# Launch Visual Studio Code
+#
+code = "code"
+if $platform == :mac
+  if `which code`.chomp.size == 0
+    code = "open -a /Applications/Visual\\ Studio\\ Code.app"
+  end
+end
+`#{code} #{platoroot} #{app_edge_rb} #{app_bridge_rb}`
+$logger.info 'VSCode launched.'
 
 
 ###############################
@@ -331,3 +409,7 @@ if $platform == :mac
   end
 end
 `#{code} #{platoroot} #{app}`
+
+rescue => e
+  $logger.error e
+end
