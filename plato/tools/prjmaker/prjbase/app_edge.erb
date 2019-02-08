@@ -1,3 +1,439 @@
-JOBS = [
+#
+# Constants
+#
+
+# Sensor device classes
+TEMPERATURE_SENSOR  = SHTC1
+HUMIDITY_SENSOR     = TEMPERATURE_SENSOR
+ILLUMINANCE_SENSOR  = OPT3001
+ACCELERATION_SENSOR = BMA400
+
+#
+# Global variables
+#
+
+$vm = VM.new
+$i2c = I2C.new
+$ble = BLE.new
+# $DEBUG = true   # debug mode
+
+# ISensor class
+class ISensor
+  # isensor.read #=> Float/Array
+  # Get sensing data (or cached data)
+  def read
+    unless @value then
+      @value = _read
+    end
+    return @value
+  end
+
+  # isensor.clear #=> nil
+  # Clear cahced sensing data
+  def clear
+    @value = nil
+  end
+
+  # isensor.type #=> Symbol
+  # Get sensor type. (e.g., :temperature, :humidity, ...)
+  def type
+    return @type  # TODO: Change to constant
+  end
+end
+
+# IlluminanceSensor class
+class IlluminanceSensor < ISensor
+  # IlliminanceSensor.new(sensor) #=> IlliminanceSensor
+  #   sensor: Sensor class
+  def initialize(sensor)
+    @illu = sensor.new
+    @type = :illuminance
+  end
+
+  # sonsor._read #=> Float
+  def _read
+    @illu.read_lux
+  end
+end
+
+# TemperatureSensor class
+class TemperatureSensor < ISensor
+  # TemperatureSensor.new(sensor) #=> TemperatureSensor
+  #   sensor: Sensor class
+  def initialize(sensor)
+    @temp = sensor.instance
+    @type = :temperature
+  end
+
+  # sonsor._read #=> Float
+  def _read
+    @temp.read_temperature
+  end
+end
+
+
+# AccelerationSensor class
+class AccelerationSensor < ISensor
+  # AccelerationSensor.new(sensor) #=> AccelerationSensor
+  #   sensor: Sensor class
+  def initialize(sensor)
+    @accel = sensor.new
+    @type = :acceleration
+  end
+
+  # sonsor._read #=> Array (as [x, y, z])
+  def _read
+    @accel.read_acceleration
+  end
+end
+
+# HumiditySensor class
+class HumiditySensor < ISensor
+  # HumiditySensor.new(sensor) #=> HumiditySensor
+  #   sensor: Sensor class
+  def initialize(sensor)
+    @hum = sensor.instance
+    @type = :humidity
+  end
+
+  # sensor._read #=> Float
+  def _read
+    @hum.read_humidity
+  end
+end
+
+# 周期判定クラス
+class IntervalTiming
+  # 周期の設定をする
+  # interval_cycle    設定する周期(単位:ms)　　
+  def initialize(interval_cycle)
+    @interval_timer = $vm.tick + interval_cycle
+    @interval_cycle_time = interval_cycle
+  end
+
+  # 設定周期になったかどうか判定を行う
+  def timing?
+    return false if $vm.tick < @interval_timer
+    @interval_timer += @interval_cycle_time
+    return true
+  end
+
+  # ジョブが無効状態から有効状態になった際に、経過時間を更新する
+  def adjustment
+    @interval_timer = $vm.tick + @interval_cycle_time
+  end
+end
+
+# Trigger timing
+class TriggerTiming
+  # TriggerTiming.new(job, period, judges, tail_edge, delay_time, cont_period) #=> TriggerTiming
+  #   job:          Owner job
+  #   judge_period: Period for trigger judgement
+  #   judges:       Judgment conditions
+  #   tail_edge:    Check tail-side edge
+  #   delay_time:   Delay time for trigger-on (from trigger condition started)
+  #   cont_period:  Period for while trigger on continues
+  def initialize(job, judge_period, judges, tail_edge, delay_time=nil, cont_period=nil)
+    @job = job
+    @judge_timer = IntervalTiming.new(judge_period)   # trigger judge timer
+    @judges = judges
+    @enable_tail_edge = tail_edge
+    @delay_time = delay_time      # TODO: implements
+    @cont_period = cont_period    # TODO: implements
+    @prev_trigger = false         # previous trigger condition
+    sensors = []
+    @judges.each{|judge|
+      job.sensors.each{|sensor|
+        sensors << sensor if sensor.type == judge[:type]
+      }
+    }
+    @sensors = sensors
+  end
+
+  # TriggerTiming#timing? #=> true/false
+  # Judge trigger timinig
+  def timing?
+    # Check judge timing
+    return false unless @judge_timer.timing?
+
+    trigger = false
+    # Get sensor values
+    values = {}
+    @sensors.each{|sensor|
+      values[sensor.type] = sensor.read
+      # puts values[@sensors[i].type]
+    }
+    # Judge trigger
+    timing = judge_value(values)
+    trigger = edge_decision(timing)
+    @prev_trigger = timing
+    puts "trigger is #{trigger}" if $DEBUG
+
+    return trigger
+  end
+
+  # 測定値が設定した基準値に達しているか判定する
+  def judge_value(values)
+    value_auth = false
+    timing = true
+    @judges.each{|judge|
+      reference_value = judge[:value].to_i
+      sensing_value = values[judge[:type]]
+      if $DEBUG
+        print "#{judge[:and_or]} " if judge[:and_or]
+        print "#{judge[:type]}(#{sensing_value}) _#{judge[:cond]}_ #{judge[:value]}"
+      end
+      # :gt  より大きい
+      # :ge  以上
+      # :le  以下
+      # :lt  より小さい
+      # :eq  同じ
+      # :nq  異なる
+      case judge[:cond]
+      when :gt then
+        value_auth = (reference_value <  sensing_value)
+      when :ge then
+        value_auth = (reference_value <= sensing_value)
+      when :le then
+        value_auth = (reference_value >= sensing_value)
+      when :lt then
+        value_auth = (reference_value >  sensing_value)
+      when :eq then
+        value_auth = (reference_value ==  sensing_value)
+      when :nq then
+        value_auth = (reference_value !=  sensing_value)
+      else
+        value_auth = false
+      end
+      puts " => #{value_auth.to_s}" if $DEBUG
+
+      # and,orの判定
+      unless judge[:and_or] then
+        timing = value_auth
+      else
+        if judge[:and_or] === :and then
+          timing = timing && value_auth
+          break unless timing
+        elsif judge[:and_or] === :or then
+          timing = timing || value_auth
+        end
+      end
+    }
+    return timing
+  end
+
+  # 立ち上がり判定
+  # 前回の状態を保存しておき、今回の状態と比較して異なる場合立ち上がり、立ち下がりが起きる
+  def edge_decision(timing)
+    if @prev_trigger != timing then
+      trigger_timing = true
+      unless @enable_tail_edge then
+        trigger_timing = false if @prev_trigger
+      end
+    else
+      trigger_timing = false
+    end
+    return trigger_timing
+  end
+
+  # ジョブが無効状態から有効状態になった際に、経過時間を更新する
+  def adjustment
+    @judge_timer.adjustment
+  end
+end
+
+# BLE送信
+class BluetoothAction
+  # ジョブ情報内のセンサ情報と引数のセンサ情報を比較し、
+  # 送信に使用するセンサのリスト(@use_sensors)を作成する
+  # 引数
+  # job         ジョブ情報
+  # sensors     送信するセンサのクラス　配列で渡される
+  def initialize(job, sensors)
+    use_sensors = []            # 送信する値のセンサ
+    job.sensors.each{|job_sensor|
+      if sensors.index(job_sensor.type) then
+        use_sensors.push(job_sensor)
+      end
+    }
+    @use_sensors = use_sensors
+  end
+
+  # リスト(@use_sensors)にあるセンサの測定値を順に送信する
+  def run
+    # puts "BLE_run"
+    # puts $vm.tick
+    @use_sensors.each{|use_sensor|
+      $ble.notify(use_sensor.type, use_sensor.read)
+      # ble送信のテスト
+      case use_sensor.type
+      when :temperature
+        $ble.temperature = use_sensor.read
+      when :humidity
+        $ble.humidity = use_sensor.read
+      when :illuminance
+        $ble.illuminance = use_sensor.read
+      when :acceleration
+        $ble.acceleration = use_sensor.read
+      end
+    }
+  end
+end
+
+# onoff action
+# ジョブの有効、向こうの切り替え
+class OnOffAction
+  # 引数
+  # job_name  切り替えを行うジョブの名前
+  # switch    有効、無効どっちに切り替えるか
+  #           trueなら有効、falseなら無効に切り替える
+  def initialize(job_name, switch)
+    @job_name = job_name
+    @switch = switch
+    puts "Job(#{@job_name}) turn #{@switch ? 'on' : 'off'}" if $DEBUG
+  end
+
+  # アプリケーションからジョブリストを取得し、ジョブの状態を切り替える
+  # 無効から有効に切り替える場合は、経過時間の調整を行う
+  def run
+    job = $app.job_list[@job_name.to_sym]
+    unless job.enabled? then
+      i = 0
+      job.timings.each{|timing|
+        timing.adjustment
+      }
+    end
+    job.enable(@switch)
+    puts "IoTJob `#{job.name}` #{job.enabled? ? 'enabled' : 'disabled'}" if $DEBUG
+  end
+end
+
+# IoT Job class
+class IoTJob
+  # IoTJob.new(name, enable)
+  #   name:   Name of IoTJob
+  #   enable: Initial state of IoT job.
+  #             == true:  enable (as default)
+  #             == false: disable
+  def initialize(name, enable=true)
+    @t = 0                # インスタンス変数が途中で内容がnilになることへの暫定的な対策
+    @name = name
+    @enable = enable
+    @sensors = []
+    @timings = []
+    @actions = []
+  end
+
+  # # 使用するセンサの設定
+  # def set_sensors(sensors)
+  #   @sensors = sensors
+  # end
+
+  # # 使用するタイミングの設定
+  # def set_timings(timings)
+  #   @timings = timings
+  # end
+
+  # # 使用するアクションの設定
+  # def set_actions(actions)
+  #   @actions = actions
+  # end
+
+  # Get sensor list
+  def sensors
+    return @sensors
+  end
+
+  # Get timing list
+  def timings
+    return @timings
+  end
+
+  # Get action list
+  def actions
+    return @actions
+  end
+
+  # Get job name
+  def name
+    return @name
+  end
+
+  # iotjob.enable(ena) #=> true/false
+  # Enable/Disable IoT job
+  # Arguments
+  #   ena:    Enable/Disable job
+  #     true:   enable
+  #     false:  disable
+  def enable(ena)
+    @enable = ena
+  end
+
+  # iotjob.enabled? #=> true/false
+  #   true:   IoT job is enabled
+  #   false:  IoT job is disabled
+  def enabled?
+    return @enable
+  end
+
+  # iotjob.run #=> true/false
+  def run
+    return false unless @enable
+
+    trigger = false
+    @timings.each{|timing|
+      trigger = timing.timing?
+      break if trigger
+    }
+    if trigger
+      @actions.each{|action|
+        action.run
+      }
+    end
+    # Clear sensor values
+    # TODO: Re-design clear timing
+    @sensors.each{|sensor|
+      sensor.clear
+    }
+    true
+  end
+end
+
+# IoT Application class
+class Application
+  # ジョブを配列で受け取り、ジョブのリストを作成する
+  def initialize(name, jobs)
+    @name = name
+    job_list = {}
+    jobs.each{|job|
+      job_list[job.name.to_sym] = job
+    }
+    @job_list = job_list
+  end
+
+  # Get job list
+  def job_list
+    return @job_list
+  end
+
+  # Run all jobs
+  def run
+    values = @job_list.values
+    values.each{|value|
+      value.run
+    }
+  end
+end
+
+JOBS = []
 <%=job_list %>
-]
+
+# Create IoT application
+$app = Application.new("app", JOBS)
+
+loop {
+  # run IoT jobs
+  $app.run
+  # Handling the idle state in main loop
+  $app.manage_power
+}

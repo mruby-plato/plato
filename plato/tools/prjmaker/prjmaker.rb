@@ -103,42 +103,115 @@ $logger.info "App.dir: #{prjdir}"
 # Make app_edge.rb
 #
 
+JOBS = []
+SENSORS = {
+  :acceleration => {:cls => 'AccelerationSensor', :dev => 'ACCELERATION_SENSOR'},
+  :gyro         => {:cls => 'GyroSensor',         :dev => 'GYRO_SENSOR'},
+  :geomagnetism => {:cls => 'GeomagnetismSensor', :dev => 'GEOMAGNETISM_SENSOR'}, 
+  :temperature  => {:cls => 'TemperatureSensor',  :dev => 'TEMPERATURE_SENSOR'},
+  :humidity     => {:cls => 'HumiditySensor',     :dev => 'HUMIDITY_SENSOR'},
+  :air_pressure => {:cls => 'AirPressureSensor',  :dev => 'AIR_PRESSURE_SENSOR'},
+  :illuminance  => {:cls => 'IlliminanceSensor',  :dev => 'ILLUMINANCE_SENSOR'},
+  :gps_gga      => {:cls => 'GPSGGA',             :dev => 'GPS_DEVICE'},
+  :gps_vtg      => {:cls => 'GPSVTG',             :dev => 'GPS_DEVICE'},
+  :battery      => {:cls => 'Battery',            :dev => ''},
+  :custom       => {:cls => 'Custom',             :dev => ''},
+}
+# TIMINGS = {
+#   :interval     => {:cls => 'IntervalTiming'},
+#   :ontime       => {:cls => 'OnTimeTiming'},
+#   :part_time    => {:cls => 'PartTimeTiming'},
+#   :trigger      => {:cls => 'TriggerTiming'},
+# }
+# ACTIONS = {
+#   :bluetooth    => {:cls => 'BluetoothAction'},
+#   :onoff        => {:cls => 'OnOffAction'},
+#   :gpio         => {:cls => 'GPIOAction'},
+# }
+
 # build up IoTJob's sensors
 def build_job_sensor(sen, t)
-  tab('ISensor.new(:' + sen['type'] + '),', t)
+  # tab('ISensor.new(:' + sen['type'] + '),', t)
+  sensor = SENSORS[sen['type'].to_sym]
+  tab("job.sensors << #{sensor[:cls]}.new(#{sensor[:dev]})", t)
 end
+
+HOUR_SECONDS = 3600
+MINUTE_SECONDS = 60
 
 # build up IoTJob's timings
 def build_job_timing(tim, t)
-  tab('ITiming.new(:' + tim['type'] + '),', t)
+  # timing = TIMINGS[tim['type'].to_sym]
+  params = tim['params']
+  header = 'job.timings << '
+  case tim['type']
+  when 'interval'
+    sec = params['interval_time'].to_i * 1000 # millisecond -> second
+    case params['interval_time_unit']
+    when 'hour'
+      sec *= HOUR_SECONDS
+    when 'minute'
+      sec *= MINUTE_SECONDS
+    end
+    tab("#{header}IntervalTiming.new(#{sec})", t)
+
+  when 'trigger'
+    timing = []
+    timing << tab('judges = []', t)
+    params['triggers'].each {|trig|
+      and_or = trig['and_or'] ? "and_or: :#{trig['and_or']}, " : ''
+      judge = "type: :#{trig['param']}, value: #{trig['value']}, cond: :#{trig['cond']}"
+      timing << tab("judges << {#{and_or}#{judge}}", t)
+    }
+    sec = params['trig_period'].to_i * 1000 # millisecond -> second
+    case params['trig_peri_unit']
+    when 'hour'
+      sec *= HOUR_SECONDS
+    when 'minute'
+      sec *= MINUTE_SECONDS
+    end
+    timing << tab("#{header}TriggerTiming.new(job, #{sec}, judges, #{params['trig_off']})", t)
+
+  when 'on_time'
+    # TODO: implements
+  when 'part_time'
+    # TODO: implements
+  end
 end
 
 # build up IoTJob's actions
 def build_job_action(act, t)
-  tab('IAction.new(:' + act['type'] + '),', t)
+  # action = ACTIONS[act['type'].to_sym]
+  params = act['params']
+  header = 'job.actions << '
+  case act['type']
+  when 'bluetooth'
+    values = params.inject([]) {|ary, (k, v)|
+      ary << ":#{k}" if v
+    }
+    tab("#{header}BluetoothAction.new(job, [#{values.join(', ')}])", t)
+  when 'onoff'
+    tab("#{header}OnOffAction.new(#{JOBS[params['jobid'].to_i].inspect}, #{params['onoff'].to_i != 0})", t)
+  when 'gpio'
+    # TODO: implements
+  end
 end
 
 # build up IoTJobs
-def build_job(job, t=1)
+def build_job(job, t=0)
+  JOBS[job['id']] = job['name']
   ja = []
-  ja << tab('IoTJob.new(', t)
-  ja <<   tab(job['name'].inspect + ',', t+1)
-  ja <<   tab('[', t+1)
+  ja << tab("# #{job['name']}", t)
+  ja << tab("JOBS << job = IoTJob.new(#{job['name'].inspect}, #{(job['onoff'] == 'on')})", t)
   job['sensor'].each {|sen|
-    ja <<   build_job_sensor(sen, t+2)
+    ja << build_job_sensor(sen, t)
   }
-  ja <<   tab('],', t+1)
-  ja <<   tab('[', t+1)
   job['timing'].each {|tim|
-    ja <<   build_job_sensor(tim, t+2)
+    ja << build_job_timing(tim, t)
   }
-  ja <<   tab('],', t+1)
-  ja <<   tab('[', t+1)
   job['action'].each {|act|
-    ja <<   build_job_sensor(act, t+2)
+    ja << build_job_action(act, t)
   }
-  ja <<   tab(']', t+1)
-  ja << tab('),', t)
   ja.join("\n")
 end
 
