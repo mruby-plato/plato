@@ -33,7 +33,7 @@ end
 # Get platform
 $platform = case RUBY_PLATFORM.downcase
 when /mswin(?!ce)|mingw|cygwin|bccwin/
-  :windows
+  :win
 when /darwin/
   :mac
 when /linux/
