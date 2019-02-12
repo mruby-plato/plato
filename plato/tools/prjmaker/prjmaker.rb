@@ -111,7 +111,7 @@ SENSORS = {
   :temperature  => {:cls => 'TemperatureSensor',  :dev => 'TEMPERATURE_SENSOR'},
   :humidity     => {:cls => 'HumiditySensor',     :dev => 'HUMIDITY_SENSOR'},
   :air_pressure => {:cls => 'AirPressureSensor',  :dev => 'AIR_PRESSURE_SENSOR'},
-  :illuminance  => {:cls => 'IlliminanceSensor',  :dev => 'ILLUMINANCE_SENSOR'},
+  :illuminance  => {:cls => 'IlluminanceSensor',  :dev => 'ILLUMINANCE_SENSOR'},
   :gps_gga      => {:cls => 'GPSGGA',             :dev => 'GPS_DEVICE'},
   :gps_vtg      => {:cls => 'GPSVTG',             :dev => 'GPS_DEVICE'},
   :battery      => {:cls => 'Battery',            :dev => ''},
