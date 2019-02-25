@@ -54,8 +54,8 @@ $logger.debug "env: #{env}"
 $exe = ''
 $platform = case RUBY_PLATFORM.downcase
 when /mswin(?!ce)|mingw|cygwin|bccwin/
+  $exe = '.exe'
   :windows
-  $exe = 'exe'
 when /darwin/
   :mac
 when /linux/
