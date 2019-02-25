@@ -51,9 +51,11 @@ end
 $logger.debug "env: #{env}"
 
 # Get platform
+$exe = ''
 $platform = case RUBY_PLATFORM.downcase
 when /mswin(?!ce)|mingw|cygwin|bccwin/
   :windows
+  $exe = 'exe'
 when /darwin/
   :mac
 when /linux/
@@ -238,6 +240,21 @@ appscript = ERB.new(File.read(File.join($prjbase, 'app_bridge.erb'))).result
 app_bridge_rb = File.join(prjdir, 'app_bridge.rb')
 File.write(app_bridge_rb, appscript)
 $logger.info "`#{app_bridge_rb}` is written."
+
+#
+# Compile ruby scripts
+#
+
+platotool = File.join(platoroot, '.plato', 'tools')
+mrbc141 = File.join(platotool, "mrbc141#{$exe}")
+mrbc200 = File.join(platotool, "mrbc200#{$exe}")
+
+`#{mrbc141} -E #{app_edge_rb}`
+$logger.info "`#{app_edge_rb}` is compiled."
+
+`#{mrbc200} -E #{app_bridge_rb}`
+$logger.info "`#{app_bridge_rb}` is compiled."
+
 
 #
 # Launch Visual Studio Code
