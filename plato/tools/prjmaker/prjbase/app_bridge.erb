@@ -1,15 +1,15 @@
-BT_PROXIMITY = "<%=appcfg['setting']['bt_setting']['grpid'] %>"
-BT_DEVID = "<%=appcfg['setting']['bt_setting']['devid'] %>"
-LORA_DEVEUI = "<%=appcfg['setting']['lora_setting']['deveui'] %>"
-LORA_APPEUI = "<%=appcfg['setting']['lora_setting']['appeui'] %>"
-LORA_APPKEY = "<%=appcfg['setting']['lora_setting']['appkey'] %>"
+BT_DEV_NAME = <%=devname.inspect %>
+BT_PROXIMITY = <%=proximity.inspect %>
+LORA_DEVEUI = <%=lora_deveui.inspect %>
+LORA_APPEUI = <%=lora_appeui.inspect %>
+LORA_APPKEY = <%=lora_appkey.inspect %>
 
-bt = Bluetooth.new(BT_PROXIMITY, BT_DEVID)
-lora = LoRa.new(LORA_DEVEUI, LORA_APPETI, LORA_APPKEY)
-$app = BridgeApplication.new(bt, lora)
+ble = BLE.new(BT_DEV_NAME, BT_PROXIMITY)
+lora = LoRa.new(LORA_DEVEUI, LORA_APPEUI, LORA_APPKEY)
+$app = BridgeApplication.new(ble, lora)
 
 loop {
-  # run IoT jobs
+  # run bridge
   $app.run
   # Handling the idle state in main loop
   $app.manage_power

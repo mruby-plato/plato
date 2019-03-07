@@ -231,6 +231,14 @@ app_edge_rb = File.join(prjdir, 'app_edge.rb')
 File.write(app_edge_rb, appscript)
 $logger.info "`#{app_edge_rb}` is written."
 
+def hex2str(hex)
+  str = ''
+  (hex.size / 2).to_i.times {|i|
+    str += hex[i*2, 2].to_i(16).chr
+  }
+  str
+end
+
 #
 # Make app_bridge_init.rb
 #
@@ -241,16 +249,12 @@ devname = bt_setting['devname']
 devname = nil if devname.nil? || devname.length == 0
 # Proximity UUID
 grpid = bt_setting['grpid'].gsub('-', '')
-proximity = nil
-if grpid.length >= 32
-  proximity = ''
-  16.times {|i| proximity += grpid[i*2, 2].to_i(16).chr}
-end
+proximity = grpid.length == 32 ? hex2str(grpid) : nil
 # Major / Minor
 devid = bt_setting['devid']
 devid = '000000' if devid.nil? || devid.length < 6
-major = devid[0, 2].to_i(16).chr
-minor = devid[2, 2].to_i(16).chr + devid[4, 2].to_i(16).chr
+major = hex2str(devid[0, 2])
+minor = hex2str(devid[2, 4])
 
 appscript = ERB.new(File.read(File.join($prjbase, 'app_edge_init.erb'))).result
 app_edge_init_rb = File.join(prjdir, 'app_edge_init.rb')
@@ -260,6 +264,13 @@ $logger.info "`#{app_edge_init_rb}` is written."
 #
 # Make app_bridge.rb
 #
+
+devname = nil
+# LoRa parameters
+lora_setting = setting['lora_setting']
+lora_deveui = lora_setting['deveui'].length == 16 ? hex2str(lora_setting['deveui']) : nil
+lora_appeui = lora_setting['appeui'].length == 16 ? hex2str(lora_setting['appeui']) : nil
+lora_appkey = lora_setting['appkey'].length == 32 ? hex2str(lora_setting['appkey']) : nil
 
 appscript = ERB.new(File.read(File.join($prjbase, 'app_bridge.erb'))).result
 # puts appscript if $DEBUG
