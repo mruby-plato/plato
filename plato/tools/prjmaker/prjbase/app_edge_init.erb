@@ -1,0 +1,27 @@
+#
+# Constants
+#
+
+BT_DEV_NAME = <%=devname.inspect %>
+BT_PROXIMITY = <%=proximity.inspect %>
+BT_MAJOR = <%=major.inspect %>
+BT_MINOR = <%=minor.inspect %>
+
+# Sensor device classes
+TEMPERATURE_SENSOR  = SHTC1
+HUMIDITY_SENSOR     = TEMPERATURE_SENSOR
+ILLUMINANCE_SENSOR  = OPT3001
+AIR_PRESSURE_SENSOR = LPS22HB
+ACCELERATION_SENSOR = BMA400
+ANGLE_SENSOR        = ACCELERATION_SENSOR
+VIBRATION_SENSOR    = ACCELERATION_SENSOR
+
+#
+# Global variables
+#
+
+$initialized = false
+
+# initialize
+
+BLE.config(BT_DEV_NAME, BT_PROXIMITY, BT_MAJOR, BT_MINOR)

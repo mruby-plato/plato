@@ -232,6 +232,32 @@ File.write(app_edge_rb, appscript)
 $logger.info "`#{app_edge_rb}` is written."
 
 #
+# Make app_bridge_init.rb
+#
+setting = appcfg['setting']
+bt_setting = setting['bt_setting']
+# Device name
+devname = bt_setting['devname']
+devname = nil if devname.nil? || devname.length == 0
+# Proximity UUID
+grpid = bt_setting['grpid'].gsub('-', '')
+proximity = nil
+if grpid.length >= 32
+  proximity = ''
+  16.times {|i| proximity += grpid[i*2, 2].to_i(16).chr}
+end
+# Major / Minor
+devid = bt_setting['devid']
+devid = '000000' if devid.nil? || devid.length < 6
+major = devid[0, 2].to_i(16).chr
+minor = devid[2, 2].to_i(16).chr + devid[4, 2].to_i(16).chr
+
+appscript = ERB.new(File.read(File.join($prjbase, 'app_edge_init.erb'))).result
+app_edge_init_rb = File.join(prjdir, 'app_edge_init.rb')
+File.write(app_edge_init_rb, appscript)
+$logger.info "`#{app_edge_init_rb}` is written."
+
+#
 # Make app_bridge.rb
 #
 
@@ -252,6 +278,9 @@ mrbc200 = File.join(platotool, "mrbc200#{$exe}")
 `#{mrbc141} -E #{app_edge_rb}`
 $logger.info "`#{app_edge_rb}` is compiled."
 
+`#{mrbc141} -E #{app_edge_init_rb}`
+$logger.info "`#{app_edge_init_rb}` is compiled."
+
 `#{mrbc200} -E #{app_bridge_rb}`
 $logger.info "`#{app_bridge_rb}` is compiled."
 
@@ -265,7 +294,7 @@ if $platform == :mac
     code = "open -a /Applications/Visual\\ Studio\\ Code.app"
   end
 end
-`#{code} #{platoroot} #{app_edge_rb} #{app_bridge_rb}`
+`#{code} #{platoroot} #{app_edge_rb} #{app_edge_init_rb} #{app_bridge_rb}`
 $logger.info 'VSCode launched.'
 
 
