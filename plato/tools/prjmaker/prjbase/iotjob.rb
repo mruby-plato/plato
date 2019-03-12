@@ -520,20 +520,20 @@ class BluetoothAction
   #   trigger:  Don't care
   def run(trigger = :on)
     @sensors.each{|sensor|
-    puts "ble_send_value: #{sensor.read}" if $DEBUG
+      puts "ble.send :#{sensor.type}, #{sensor.read}" if $DEBUG
       # Send value
-      # $ble.notify(sensor.type, sensor.read)
+      # BLE.notify(sensor.type, sensor.read)
       case sensor.type
-        when :acceleration; $ble.acceleration = sensor.read
-        when :angle;        $ble.gyro = sensor.read
-        when :temperature;  $ble.temperature = sensor.read
-        when :humidity;     $ble.humidity = sensor.read
-        when :air_pressure; $ble.air_pressure = sensor.read
-        when :illuminance;  $ble.illuminance = sensor.read
-        when :gpsgga;       $ble.gps_gga = sensor.read
-        when :gpsvtg;       $ble.gps_vtg = sensor.read
-        when :battery;      $ble.battery = sensor.read
-        when :vibration;    $ble.vibration = sensor.read
+        when :acceleration; BLE.acceleration = sensor.read
+        when :angle;        BLE.gyro = sensor.read
+        when :temperature;  BLE.temperature = sensor.read
+        when :humidity;     BLE.humidity = sensor.read
+        when :air_pressure; BLE.air_pressure = sensor.read
+        when :illuminance;  BLE.illuminance = sensor.read
+        when :gpsgga;       BLE.gps_gga = sensor.read
+        when :gpsvtg;       BLE.gps_vtg = sensor.read
+        when :battery;      BLE.battery = sensor.read
+        when :vibration;    BLE.vibration = sensor.read
         else; puts "Unknown sensor type (#{sensor.type})" if $DEBUG
       end
     }

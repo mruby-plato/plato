@@ -82,6 +82,7 @@ FileUtils.rm_rf(tools_dir)
 FileUtils.mkdir_p(tools_dir)
 [
   File.join(srcroot, 'plato', 'tools', 'prjmaker', 'prjmaker.rb'),
+  File.join(srcroot, 'plato', 'tools', 'utils', 'makebin.rb'),
   File.join(srcroot, 'plato', 'tools', 'bin', 'mrbwrite' + $exe),
   File.join(srcroot, 'plato', 'tools', 'bin', 'mrbc141' + $exe),
   File.join(srcroot, 'plato', 'tools', 'bin', 'mrbc200' + $exe)

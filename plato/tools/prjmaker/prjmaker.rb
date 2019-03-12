@@ -286,11 +286,36 @@ platotool = File.join(platoroot, '.plato', 'tools')
 mrbc141 = File.join(platotool, "mrbc141#{$exe}")
 mrbc200 = File.join(platotool, "mrbc200#{$exe}")
 
-`#{mrbc141} -E #{app_edge_rb}`
+app_edge_bg_rb = File.join($prjbase, 'app_edge_bg.rb')
+mrblib_rb = File.join($prjbase, 'mrblib.rb')
+iotjob_rb = File.join($prjbase, 'iotjob.rb')
+makebin_rb = File.join(platotool, "makebin.rb")
+
+app_edge_init_mrb = File.join(prjdir, 'app_edge_init.mrb')
+app_edge_bg_mrb = File.join($prjbase, 'app_edge_bg.mrb')
+app_edge_mrb = File.join(prjdir, 'app_edge.mrb')
+app_bin = File.join(prjdir, 'mrbapp.bin')
+
+# $logger.info app_edge_bg_rb
+# $logger.info mrblib_rb
+# $logger.info iotjob_rb
+# $logger.info makebin_rb
+
+# $logger.info app_edge_init_mrb
+# $logger.info app_edge_bg_mrb
+# $logger.info app_edge_mrb
+
+`#{mrbc141} -E -o #{app_edge_init_mrb} #{mrblib_rb} #{iotjob_rb} #{app_edge_init_rb}`
+$logger.info "`#{app_edge_init_rb}` is compiled."
+
+`#{mrbc141} -E -o #{app_edge_bg_mrb} #{app_edge_bg_rb}`
+$logger.info "`#{app_edge_bg_rb}` is compiled."
+
+`#{mrbc141} -E -o #{app_edge_mrb} #{app_edge_rb}`
 $logger.info "`#{app_edge_rb}` is compiled."
 
-`#{mrbc141} -E #{app_edge_init_rb}`
-$logger.info "`#{app_edge_init_rb}` is compiled."
+`ruby #{makebin_rb} #{app_bin} #{app_edge_init_mrb} #{app_edge_bg_mrb} #{app_edge_mrb}`
+$logger.info "#{app_bin} is generated."
 
 `#{mrbc200} -E #{app_bridge_rb}`
 $logger.info "`#{app_bridge_rb}` is compiled."
