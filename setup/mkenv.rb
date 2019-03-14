@@ -124,6 +124,9 @@ end.each {|target|
   _cp(plato_src, $plato_dst)
 }
 
+# $PLATO/settings
+FileUtils.mkdir_p(File.join(instdir, 'settings'))
+
 # # $HOME/.vscode/extensions
 # puts 'copy VSCode extensions...'
 # EXTNAME = 'mruby-plato'
