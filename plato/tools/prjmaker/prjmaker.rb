@@ -201,7 +201,7 @@ end
 
 # build up IoTJobs
 def build_job(job, t=0)
-  JOBS[job['id']] = job['name']
+  # JOBS[job['id']] = job['name']
   ja = []
   ja << tab("# #{job['name']}", t)
   ja << tab("JOBS << job = IoTJob.new(#{job['name'].inspect}, #{(job['onoff'] == 'on')})", t)
@@ -218,9 +218,9 @@ def build_job(job, t=0)
 end
 
 jobs = appcfg['jobList']
-# jobs.each {|job|
-#   puts "job: #{job['name']}"
-# }
+jobs.each {|job|
+  JOBS[job['id']] = job['name']
+}
 job_list = jobs.map() {|job|
   puts "job: #{job['name']}"
   build_job(job)
