@@ -294,7 +294,7 @@ $logger.info "`#{app_bridge_rb}` is written."
 
 platotool = File.join(platoroot, '.plato', 'tools')
 mrbc141 = File.join(platotool, "mrbc141#{$exe}")
-mrbc200 = File.join(platotool, "mrbc200#{$exe}")
+mrbc201 = File.join(platotool, "mrbc201#{$exe}")
 
 app_edge_bg_rb = File.join($prjbase, 'app_edge_bg.rb')
 mrblib_rb = File.join($prjbase, 'mrblib.rb')
@@ -327,10 +327,10 @@ $logger.info "`#{app_edge_rb}` is compiled."
 `ruby #{makebin_rb} #{app_bin} #{app_edge_init_mrb} #{app_edge_bg_mrb} #{app_edge_mrb}`
 $logger.info "#{app_bin} is generated."
 
-`#{mrbc200} -E #{app_bridge_init_rb}`
+`#{mrbc201} -E #{app_bridge_init_rb}`
 $logger.info "`#{app_bridge_init_rb}` is compiled."
 
-`#{mrbc200} -E #{app_bridge_rb}`
+`#{mrbc201} -E #{app_bridge_rb}`
 $logger.info "`#{app_bridge_rb}` is compiled."
 
 
