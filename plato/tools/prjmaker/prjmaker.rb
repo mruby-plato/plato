@@ -262,7 +262,7 @@ File.write(app_edge_init_rb, appscript)
 $logger.info "`#{app_edge_init_rb}` is written."
 
 #
-# Make app_bridge.rb
+# Make app_bridge_init.rb
 #
 
 devname = nil
@@ -271,6 +271,16 @@ lora_setting = setting['lora_setting']
 lora_deveui = lora_setting['deveui'].length == 16 ? hex2str(lora_setting['deveui']) : nil
 lora_appeui = lora_setting['appeui'].length == 16 ? hex2str(lora_setting['appeui']) : nil
 lora_appkey = lora_setting['appkey'].length == 32 ? hex2str(lora_setting['appkey']) : nil
+
+appscript = ERB.new(File.read(File.join($prjbase, 'app_bridge_init.erb'))).result
+# puts appscript if $DEBUG
+app_bridge_init_rb = File.join(prjdir, 'app_bridge_init.rb')
+File.write(app_bridge_init_rb, appscript)
+$logger.info "`#{app_bridge_init_rb}` is written."
+
+#
+# Make app_bridge.rb
+#
 
 appscript = ERB.new(File.read(File.join($prjbase, 'app_bridge.erb'))).result
 # puts appscript if $DEBUG
@@ -317,6 +327,9 @@ $logger.info "`#{app_edge_rb}` is compiled."
 `ruby #{makebin_rb} #{app_bin} #{app_edge_init_mrb} #{app_edge_bg_mrb} #{app_edge_mrb}`
 $logger.info "#{app_bin} is generated."
 
+`#{mrbc200} -E #{app_bridge_init_rb}`
+$logger.info "`#{app_bridge_init_rb}` is compiled."
+
 `#{mrbc200} -E #{app_bridge_rb}`
 $logger.info "`#{app_bridge_rb}` is compiled."
 
@@ -330,7 +343,7 @@ if $platform == :mac
     code = "open -a /Applications/Visual\\ Studio\\ Code.app"
   end
 end
-`#{code} #{platoroot} #{app_edge_rb} #{app_edge_init_rb} #{app_bridge_rb}`
+`#{code} #{platoroot} #{app_edge_rb} #{app_edge_init_rb} #{app_bridge_rb} #{app_bridge_init_rb}`
 $logger.info 'VSCode launched.'
 
 

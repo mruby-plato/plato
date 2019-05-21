@@ -1,0 +1,16 @@
+#
+# Constants
+#
+
+BT_DEV_NAME = <%=devname.inspect %>
+BT_PROXIMITY = <%=proximity.inspect %>
+LORA_DEVEUI = <%=lora_deveui.inspect %>
+LORA_APPEUI = <%=lora_appeui.inspect %>
+LORA_APPKEY = <%=lora_appkey.inspect %>
+
+#
+# Setup Bluetooth and LoRa
+#
+
+Bluetooth.setup(BT_DEV_NAME, BT_PROXIMITY)
+LoRa.setup(LORA_DEVEUI, LORA_APPEUI, LORA_APPKEY)

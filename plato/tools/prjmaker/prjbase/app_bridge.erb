@@ -1,12 +1,4 @@
-BT_DEV_NAME = <%=devname.inspect %>
-BT_PROXIMITY = <%=proximity.inspect %>
-LORA_DEVEUI = <%=lora_deveui.inspect %>
-LORA_APPEUI = <%=lora_appeui.inspect %>
-LORA_APPKEY = <%=lora_appkey.inspect %>
-
-ble = BLE.new(BT_DEV_NAME, BT_PROXIMITY)
-lora = LoRa.new(LORA_DEVEUI, LORA_APPEUI, LORA_APPKEY)
-$app = BridgeApplication.new(ble, lora)
+$app = BridgeApplication.new
 
 loop {
   # run bridge
