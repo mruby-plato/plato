@@ -73,8 +73,7 @@ puts 'build Plato UI...'
 # $PLATO/.plato/tools
 #   prjmaker.rb
 #   mrbwrite.exe
-#   mrbc141.exe / mrbc141
-#   mrbc200.exe / mrbc200
+#   mrbc201.exe / mrbc201
 puts 'copy tools...'
 _plato_dir = File.join(instdir, '.plato')
 tools_dir = File.join(_plato_dir, 'tools')
@@ -84,8 +83,7 @@ FileUtils.mkdir_p(tools_dir)
   File.join(srcroot, 'plato', 'tools', 'prjmaker', 'prjmaker.rb'),
   File.join(srcroot, 'plato', 'tools', 'utils', 'makebin.rb'),
   File.join(srcroot, 'plato', 'tools', 'bin', 'mrbwrite' + $exe),
-  File.join(srcroot, 'plato', 'tools', 'bin', 'mrbc141' + $exe),
-  File.join(srcroot, 'plato', 'tools', 'bin', 'mrbc200' + $exe)
+  File.join(srcroot, 'plato', 'tools', 'bin', 'mrbc201' + $exe)
 ].each {|file|
   _cp(file, File.join(tools_dir, File.basename(file)))
 }
