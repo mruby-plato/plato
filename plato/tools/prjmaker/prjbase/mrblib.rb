@@ -1,13 +1,35 @@
 puts "+++ i2c.rb +++" if $DEBUG
 
+#
+# I2C class
+#
 class I2C
+  # I2C#write_command(addr, cmd) => Fixnum
+  # <params>
+  #   addr:   slave address
+  #   cmd:    Array of command and data to send
+  # <return>
+  #   result code.
+  #     == 0  success
+  #     != 0  error
   def write_command(addr, cmd)
-    _write(addr, cmd)
+    _write(addr, cmd, false)
   end
 
+  # I2C#read_command(addr, cmd, len) => String
+  # <params>
+  #   addr:   slave address
+  #   cmd:    Array of command and data to send
+  #   len:    Maximum length for receive data
+  # <return>
+  #   Receive data (Binary string)
+  #     nil   error
   def read_command(addr, cmd, len)
-    _write(addr, cmd)
-    _read(addr, len)
+    ret = nil
+    if _write(addr, cmd, true) == 0
+      ret = _read(addr, len, true)
+    end
+    ret
   end
 end
 # UART class
@@ -38,27 +60,61 @@ class UART
   # <return>
   #   String: Line data (exclude terminate separator)
   #   nil:    Cannot found separator
+
+  # enable OP_RETURN_BLK ver.
+
+  # def get_line(rs="\n")
+  #   while @bufidx < @bufsize
+  #     c = _read
+  #     return nil if c == nil  # no data
+  #     if c == rs
+  #       line = @buffer[0, @bufidx]
+  #       @bufidx = 0
+  #       return line
+  #     end
+  #     @buffer[@bufidx] = c
+  #     @bufidx += 1
+  #   end
+  #   # Not enough buffer size
+  #   while c = _read
+  #     if c == rs
+  #       @bufidx = 0
+  #       return @buffer
+  #     end
+  #     @buffer += c
+  #   end
+  #   nil
+  # end
+
+  # disable OP_RETURN_BLK ver.
+
   def get_line(rs="\n")
+    line = nil
     while @bufidx < @bufsize
       c = _read
-      return nil if c == nil  # no data
+      break if c == nil
       if c == rs
         line = @buffer[0, @bufidx]
         @bufidx = 0
-        return line
+        break
       end
       @buffer[@bufidx] = c
       @bufidx += 1
     end
+    return line if @bufidx < @bufsize
+
     # Not enough buffer size
     while c = _read
       if c == rs
         @bufidx = 0
-        return @buffer
+        line = @buffer
+        break
       end
       @buffer += c
+      @bufsize += 1
     end
-    nil
+    # nil
+    line
   end
 end
 class BLE
@@ -82,6 +138,45 @@ class BLE
     end
   end
 end
+# distance.rb - Calculate distance between 2 points
+
+EARTH_R = 6378137.0   # Equatorial radius
+PI = 3.14159265359    # PI for mruby/c
+
+# deg2rad(deg) #=> Float
+# convert degrees to radians
+# <params>
+#   deg:  degrees
+# <return>
+#   radians
+def deg2rad(deg)
+  # deg.to_f * Math::PI / 180.0
+  deg.to_f * PI / 180.0
+end
+
+# distance(lat1, lng1, lat2, lng2) => Float
+# Calculate distance between 2 points
+# <params>
+#   lat1: Latitude #1
+#   lng1: Longitude #1
+#   lat2: Latitude #2
+#   lng2: Longitude #2
+# <return>
+#   distance between 2 points.
+def distance(lat1, lng1, lat2, lng2)
+  lat1 = deg2rad(lat1)
+  lng1 = deg2rad(lng1)
+  lat2 = deg2rad(lat2)
+  lng2 = deg2rad(lng2)
+
+  lat_avr = (lat1 - lat2) / 2.0
+  lng_avr = (lng1 - lng2) / 2.0
+
+  EARTH_R * 2.0 * Math.asin(Math.sqrt(Math.sin(lat_avr) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(lng_avr) ** 2))
+end
+
+# puts distance(33.606316, 130.418108, 35.689608, 139.692080) # Fukuoka-Tokyo ≒ 879987.9929968589
+# puts distance(33.606316, 130.418108, 43.064301, 141.346869) # Fukuoka-Sapporo ≒ 1418499.800039965
 #
 # constants
 #
@@ -171,6 +266,7 @@ class GPS
     @vtg = {}
     # @zda = {}
     @rmc = {}
+    @inipos = {}
   end
 
   # gps.parse_floats(items, params) #=> Hash
@@ -244,6 +340,11 @@ class GPS
       end
       @gga = val if val.size > 0
       puts "$xxGGA: #{@gga}" if $DEBUG && @gga && @gga.size > 0
+      if !@inipos[:lat] && !@inipos[:lng] && val[:lat] && val[:lng]
+        @inipos[:lat] = val[:lat]
+        @inipos[:lng] = val[:lng]
+        puts "Initiali position: lat=#{@inipos[:lat]}, lng=#{@inipos[:lng]}"
+      end
 
     when 'VTG'  # $xxVTG
       val = parse_floats(items, [
@@ -281,7 +382,28 @@ class GPS
   def vtg; @vtg; end  # Get VTG data
   # def zda; @zda; end  # Get ZDA data
   def rmc; @rmc; end  # Get RMC data
+
+  # gps.calc_distance(lat, lng) => Float/nil
+  # Calculate from initial position
+  # <params>
+  #   lat:    Latitude of current position
+  #   lng:    Longitude of current position
+  # <return>
+  #   Float:  Distance between initial and current position.
+  #   nil:    Can't calculate.
+  def calc_distance(lat, lng)
+puts "gps.calc_distance"
+    return nil unless @inipos[:lat] || @inipos[:lng]
+    # calculate distance
+    distance(@inipos[:lat], @inipos[:lng], lat, lng)
+  end
 end
+# opt3001.rb
+# OPT3001 - illuminance sensor
+
+#
+# OPT3001 class
+#
 class OPT3001
   SLAVE_ADDRESS_OPT = 0x44
   OPT_CMD_RESULT = 0x00
@@ -346,33 +468,48 @@ class OPT3001
     end
     I2C.write_command(SLAVE_ADDRESS_OPT, OPT_CMD_RESULT)
     opt = I2C.read_command(SLAVE_ADDRESS_OPT, OPT_CMD_RESULT, 2)
+    return nil if !opt || opt.size < 2
     e = (opt[0].ord & 0xF0) >> 4
     h = (opt[0].ord & 0x0F) * 256 + opt[1].ord
     lux = (1 << e) * h / 100.0
     return lux
   end
 end
-DEG = 180.0
-PI = 3.141592654                    # math PI num
-AXIS_SIZE = 3                       # use sensor's axis size
+# bma400.rb
+# BMA400 - acceleration sensor
 
+# constants
+DEG = 180.0                 # Degrees per radian
+PI = 3.141592653589793      # Math::PI
+BMA_AXIS_SIZE       = 3     # BMA400 axis size
+BMA_I2C_ADDR        = 0x14  # BMA400 I2C slave address
+BMA_REG_ACC_X_LSB   = 0x04  # register for accelerometer data (LSB).
+BMA_REG_INT_STAT0   = 0x0E  # register contain the interrupt status bits
+BMA_REG_ACC_CONFIG0 = 0x19  # register contain the accelerometer configuration (0)
+BMA_REG_ACC_CONFIG1 = 0x1A  # register contain the accelerometer configuration (1)
+BMA_REG_INT_CONFIG0 = 0x1F  # register contains interrupt control bits (0)
+BMA_REG_INT_CONFIG1 = 0x20  # register contains interrupt control bits (1)
+BMA_INT_STAT0_DRDY  = 0x80  # data ready interrupt status bit
+
+#
+# BMA400 class
+#
 class BMA400
-  SLAVE_ADDRESS_BMA = 0x14    # BMA400 slave address
-  CMD_ACC_X_LSB     = 0x04    # register in measured value　call 6 bytes from here when reading
-  CMD_ACC_CONFIG0   = 0x19    # register for set performance mode
-  CMD_ACC_CONFIG1   = 0x1A    # register for set data range and data rate
-  CMD_INT_CONFIG0   = 0x1F    # register for set of interrupt control type
-  CMD_INT_CONFIG1   = 0x20    # register for set interrupt control mode
-  CMD_INT_STAT0     = 0x0E    # register for write bits whether an interrupt has occurred
-  INT_DATA_READY    = 0x80    # value for when interrupt occurred
-
+  # BMA400.new => BMA400
   def initialize
-    @save_accel = []               # 加速度の保存値
+    @latest_accel = []
+  end
+
+  # BMA400.instance => BMA400
+  # Get BMA400 instance
+  def instance
+    $_bma400 = BMA400.new unless $_bma400
+    $_bma400
   end
 
   # setup sensor read acceleration
   # select sensor performance mode
-  # write 8 bits for register address　0x1A, set configration
+  # write 8 bits for register address 0x1A, set configration
   # write 8 bits for register address 0x19, set performance mode
   # <params>  
   #   mode    :sleep      set sleep mode(0x00)
@@ -396,7 +533,7 @@ class BMA400
     # 0x0A 400
     # 0x0B 800
     # TODO: Interim measures set range ±4g, data rate 12.5Hz
-    I2C.write_command(SLAVE_ADDRESS_BMA, [CMD_ACC_CONFIG1, 0x45])
+    I2C.write_command(BMA_I2C_ADDR, [BMA_REG_ACC_CONFIG1, 0x45])
     case mode
     when :sleep
       mode_cmd = 0x00
@@ -407,9 +544,9 @@ class BMA400
     else
       mode_cmd = 0x02
     end
-    I2C.write_command(SLAVE_ADDRESS_BMA, [CMD_ACC_CONFIG0, mode_cmd])
-    I2C.write_command(SLAVE_ADDRESS_BMA, [CMD_INT_CONFIG0, INT_DATA_READY])
-    I2C.write_command(SLAVE_ADDRESS_BMA, [CMD_INT_CONFIG1, INT_DATA_READY])
+    I2C.write_command(BMA_I2C_ADDR, [BMA_REG_ACC_CONFIG0, mode_cmd])
+    I2C.write_command(BMA_I2C_ADDR, [BMA_REG_INT_CONFIG0, BMA_INT_STAT0_DRDY])
+    I2C.write_command(BMA_I2C_ADDR, [BMA_REG_INT_CONFIG1, BMA_INT_STAT0_DRDY])
   end
 
   # read acceleration value
@@ -418,63 +555,114 @@ class BMA400
   #   update     true       if it has not been updated, return empty array
   #              false      If it has not been updated, return previous value(default)
   def read_acceleration(update = false)
-    interrupt = I2C.read_command(SLAVE_ADDRESS_BMA, CMD_INT_STAT0, 1)
+    interrupt = I2C.read_command(BMA_I2C_ADDR, BMA_REG_INT_STAT0, 1)
     # puts "sensor_measurement?: #{interrupt.ord.to_s(16)}" if $DEBUG
+    return nil if !interrupt || interrupt.size < 1
     value = []
-    if (interrupt.ord & INT_DATA_READY) != 0 then
-      accel_sb = I2C.read_command(SLAVE_ADDRESS_BMA, CMD_ACC_X_LSB, 6)
-      AXIS_SIZE.times{|i|
-        value[i] = 256 * accel_sb[2 * i + 1].ord + accel_sb[2 * i].ord
-        value[i] -= 4096 if value[i] >= 2048
-        value[i] = value[i] * 4.0 / 2048.0
+    if (interrupt.ord & BMA_INT_STAT0_DRDY) != 0 then
+      accel_sb = I2C.read_command(BMA_I2C_ADDR, BMA_REG_ACC_X_LSB, 6)
+      return nil if !accel_sb || accel_sb.size < 6
+      BMA_AXIS_SIZE.times{|i|
+        acc = accel_sb[i * 2 + 1].ord << 8 | accel_sb[i * 2].ord
+        acc -= 4096 if acc >= 2048
+        value[i] = acc / 512.0  # acc * 4.0 / 2048.0
       }
-      @save_accel = value
+      @latest_accel = value
     else
-      value = @save_accel unless update
+      value = @latest_accel unless update
     end
     return value
   end
 end
+# shtc1.rb
+# SHTC1/3 - temperature and humidity sensor
+
+# constants
+SHTC_I2C_ADDR = 0x70    # SHTC1/3 I2C slave address
+
+#
+# SHTC1 class
+#
 class SHTC1
-  SLAVE_ADDRESS_SHTC = 0x70
-  READ_CMD_SHTC = 0x71
-  SENSOR = SHTC1.new
+  # SHTC1.instance => SHTC1
+  # Get SHTC1 instance
   def instance
-    return SENSOR
+    $_shtc = SHTC1.new unless $_shtc
+    $_shtc
   end
-  # 温度の取得
-  # クロックストレッチングありで測定
-  # クロックストレッチングがありの場合、 センサ側が送信する時、処理時間の確保のためマスタ側を待たせることがある
+
+  # SHTC1#read_temperature => float
+  # Read temperature (℃)
+  # <params>
+  #   none
+  # <return>
+  #   Float   temperature [℃]
+  #   nil     read error
   def read_temperature
-    I2C.write_command(SLAVE_ADDRESS_SHTC, [0x7C, 0xA2])
-    shtc = I2C.read_command(SLAVE_ADDRESS_SHTC, READ_CMD_SHTC, 2)
+    # Wakeup
+    # I2C.write_command(SHTC_I2C_ADDR, [0x35, 0x17])
+    # sleep_ms(1) # wait for idle
+
+    # Read (Temp. first)
+    shtc = I2C.read_command(SHTC_I2C_ADDR, [0x7C, 0xA2], 2)
+    return nil if !shtc || shtc.size < 2
     st = 256 * shtc[0].ord + shtc[1].ord
     temp = 175.0 * st / 65536.0 - 45.0
+
+    # Sleep
+    # I2C.write_command(SHTC_I2C_ADDR, [0xB0, 0x98])
     return temp
   end
 
-  # 湿度の取得
-  # クロックストレッチングのありで測定
+  # SHTC1#read_humidity => Float
+  # Read humidify (%)
+  # <param>
+  #   none
+  # <return>
+  #   Float   humidity [%]
+  #   nil     read error
   def read_humidity
-    I2C.write_command(SLAVE_ADDRESS_SHTC, [0x5C, 0x24])
-    shtc = I2C.read_command(SLAVE_ADDRESS_SHTC, READ_CMD_SHTC, 2)
+    # Wakeup
+    # I2C.write_command(SHTC_I2C_ADDR, [0x35, 0x17])
+    # sleep_ms(1) # wait for idle
+
+    # Read (Humi. first)
+    shtc = I2C.read_command(SHTC_I2C_ADDR, [0x5C, 0x24], 2)
+    return nil if !shtc || shtc.size < 2
     sh = 256 * shtc[0].ord + shtc[1].ord
-    hum = 100 * sh / 65536.0
+    hum = sh / 655.36 # sh / 65535.0 * 100.0
+
+    # Sleep
+    # I2C.write_command(SHTC_I2C_ADDR, [0xB0, 0x98])
     return hum
   end
 end
-# LPS22HB (Air pressure sensor) class
-class LPS22HB
-  SLAVE_ADDR_LPS22HB      = 0x5c
-  LPS_CTRL_REG1           = 0x10  # CTRL REG.1
-  LPS_CTRL_REG2           = 0x11  # CTRL REG.2
-  LPS_READ                = 0x28  # Read value
-  LPS_CTRL_REG1_MASK_RATE = 0x70  # Data Rate mask pattern in CTRL REG.1
-  LPS_CTRL_REG2_ONESHOT   = 0x01  # Oneshot mode mask pattern in CTRL REG.2
+# lps22hb.rb
+# LPS22HB - air pressure sensor
 
+# constants
+LPS_I2C_ADDR            = 0x5c  # LPS22HB I2C slave address
+LPS_CTRL_REG1           = 0x10  # CTRL REG.1
+LPS_CTRL_REG2           = 0x11  # CTRL REG.2
+LPS_READ                = 0x28  # Read value
+LPS_CTRL_REG1_MASK_RATE = 0x70  # Data Rate mask pattern in CTRL REG.1
+LPS_CTRL_REG2_ADD_INC   = 0x10  # Register address automatically increment
+LPS_CTRL_REG2_ONESHOT   = 0x01  # Oneshot mode mask pattern in CTRL REG.2
+
+#
+# LPS22HB class
+#
+class LPS22HB
   # LPS22HB.new #=> LPS22HB
   def initialize
     @rate = nil
+  end
+
+  # LPS22HB.instance => LPS22HB
+  # Get LPS22HB instannce
+  def instance
+    $_lps22h = LPS22HB.new unless $_lps22h
+    $_lps22h
   end
 
   # lps22hb.data_rate = rate
@@ -491,12 +679,11 @@ class LPS22HB
     return true if @rate == rate  # Already set rate
     @rate = rate
 
-    # read CTRL REG 1/2
-    rs1 = I2C.read_command(SLAVE_ADDR_LPS22HB, LPS_CTRL_REG1, 1)
-    rs2 = I2C.read_command(SLAVE_ADDR_LPS22HB, LPS_CTRL_REG2, 1)
-    # puts "LPS22HB CTRL_REG1/2 = 0x#{rs1.ord.to_s(16)},0x#{rs2.ord.to_s(16)} (read)" if $DEBUG
+    # read CTRL REG 1
+    rs1 = I2C.read_command(LPS_I2C_ADDR, LPS_CTRL_REG1, 1)
+    # puts "LPS22HB CTRL_REG1 = 0x#{rs1.ord.to_s(16)} (read)" if $DEBUG
 
-    os = 0x00 # disable one shot mode
+    # os = 0x00 # disable one shot mode
     case rate.to_sym
       when :rate_1hz;   rt = 0x10   # 1Hz
       when :rate_10hz;  rt = 0x20   # 10Hz
@@ -505,30 +692,32 @@ class LPS22HB
       when :rate_75hz;  rt = 0x50   # 75Hz
       else                          # default (include :one_shot)
         rt = 0x00
-        os = LPS_CTRL_REG2_ONESHOT
+        # os = LPS_CTRL_REG2_ONESHOT
         @rate = :one_shot
     end
 
-    # write CTRL REG 1/2
+    # write CTRL REG 1
     reg1 = rs1.ord & ~LPS_CTRL_REG1_MASK_RATE | rt
-    reg2 = rs2.ord & ~LPS_CTRL_REG2_ONESHOT | os
-    # puts "LPS22HB CTRL_REG1/2 = 0x#{reg1.to_s(16)},0x#{reg2.to_s(16)} (read)" if $DEBUG
-    I2C.write_command(SLAVE_ADDR_LPS22HB, [LPS_CTRL_REG1, reg1])
-    I2C.write_command(SLAVE_ADDR_LPS22HB, [LPS_CTRL_REG2, reg2])
-
-    # # verify CTRL REG 1/2
-    # if $DEBUG
-    #   rs1 = I2C.read_command(SLAVE_ADDR_LPS22HB, LPS_CTRL_REG1, 1)
-    #   rs2 = I2C.read_command(SLAVE_ADDR_LPS22HB, LPS_CTRL_REG2, 1)
-    #   puts "LPS22HB CTRL_REG1 verify 0x#{rs1.ord.to_s(16)} (#{reg1 == rs1.ord ? 'OK' : 'NG'})"
-    #   puts "LPS22HB CTRL_REG2 verify 0x#{rs2.ord.to_s(16)} (#{reg2 == rs2.ord ? 'OK' : 'NG'})"
-    # end
+    # puts "LPS22HB CTRL_REG1 = 0x#{reg1.to_s(16)} (write)" if $DEBUG
+    I2C.write_command(LPS_I2C_ADDR, [LPS_CTRL_REG1, reg1])
   end
 
   # lps22hb.read #=> Fixnum
   # Read air pressure sensing value (hPa)
   def read_air_pressure
-    rs = I2C.read_command(SLAVE_ADDR_LPS22HB, LPS_READ, 3)
+    self.data_rate = :one_shot unless @rate
+
+    # Enable one-shot acquire
+    if @rate == :one_shot
+      cfg2 = I2C.read_command(LPS_I2C_ADDR, LPS_CTRL_REG2, 1)
+      if cfg2 && cfg2.length > 0
+        I2C.write_command(LPS_I2C_ADDR, [LPS_CTRL_REG2, cfg2.ord | LPS_CTRL_REG2_ONESHOT | LPS_CTRL_REG2_ADD_INC])
+      end
+    end
+
+    # Acquire air-pressure
+    rs = I2C.read_command(LPS_I2C_ADDR, LPS_READ, 3)
+    return nil if !rs || rs.size < 3
     raw = rs[2].ord << 16 | rs[1].ord << 8 | rs[0].ord
     # puts "LPS22HB READ 0x#{rs[0].ord.to_s(16)},0x#{rs[1].ord.to_s(16)},0x#{rs[2].ord.to_s(16)} => #{raw.to_f / 4096.0}" if $DEBUG
     return raw.to_f / 4096.0
@@ -555,7 +744,14 @@ class RTL8771B < GPS
   # <params>
   #   uart:   Instance of UART
   def initialize(uart)
-    # super
+    # super # NOT WORK!!!
+    # -- super --
+    @gga = {}
+    @vtg = {}
+    @rmc = {}
+    @inipos = {}
+    # -- super --
+
     @uart = uart
   end
 
@@ -598,3 +794,101 @@ EOS
     # end
   }
 end # __FILE__
+# sx1508b.rb
+# SX1508B - Shifting GPO, LED Driver and Keypad engine
+
+# constants
+SX1508_I2C_ADDR = 0x20    # SX1508 I2C slave address
+
+SX_LEDS       = 0b00001110  # LED1,2,3
+MASK_SX_LEDS  = 0b11110001
+
+#
+# LED class
+#
+class SX1508B_LED
+  def initialize(ion, ton=nil, off=nil, trise=nil, tfall=nil)
+# puts "SX1508B_LED.new(#{ion}, #{ton}, #{off}, #{traise}, #{tfall}"
+    @ion = ion      # RegIOnX
+    @ton = ton      # RegTOnX
+    @off = off      # RegOffX
+    @trise = trise  # RegTRiseX
+    @tfall = tfall  # RegTFallX
+  end
+
+  def on
+    # puts "SX1508B_LED#on: @ion=#{@ion}"
+    set(@ion, 0xff)
+  end
+
+  def off
+    # puts "SX1508B_LED#off: @ion=#{@ion}"
+    set(@ion, 0x00)
+  end
+
+  def pwm(val)
+    # puts "SX1508B_LED#pwm(#{val}): @ion=#{@ion}"
+    set(@ion, val)
+  end
+
+  # private
+  def set(reg, val)
+    I2C.write_command(SX1508_I2C_ADDR, [0x08, 0xff])
+    I2C.write_command(SX1508_I2C_ADDR, [reg, val])
+    I2C.write_command(SX1508_I2C_ADDR, [0x08, MASK_SX_LEDS])
+  end
+end
+
+#
+# SX1508B class
+#
+class SX1508B
+  # SX1508B.instance => SX1508B
+  # Get SX1508 instance
+  def instance
+    $_sx1508 = SX1508B.new unless $_sx1508
+    $_sx1508
+  end
+
+  def initialize
+    # puts "SX1508B.new"
+    # create LEDs
+    @led = {}
+    @led[:green]  = SX1508B_LED.new(0x17)
+    @led[:red]    = SX1508B_LED.new(0x19, 0x18, 0x1a)
+    @led[:blue]   = SX1508B_LED.new(0x1c, 0x1b, 0x1d, 0x1e, 0x1f)
+    # RegReset 1:0x12, 2:0x34
+    I2C.write_command(SX1508_I2C_ADDR, [0x7d, 0x12])
+    I2C.write_command(SX1508_I2C_ADDR, [0x7d, 0x34])
+    # RegInputDisable
+    I2C.write_command(SX1508_I2C_ADDR, [0x00, SX_LEDS])
+    # RegPullUp
+    I2C.write_command(SX1508_I2C_ADDR, [0x03, 0x00])
+    # RegOpenDrain
+    I2C.write_command(SX1508_I2C_ADDR, [0x05, SX_LEDS])
+    # RegDir
+    I2C.write_command(SX1508_I2C_ADDR, [0x07, MASK_SX_LEDS])
+    # RegClock
+    I2C.write_command(SX1508_I2C_ADDR, [0x0f, 0x40])    # b6:5=0b10
+    # RegMisc
+    I2C.write_command(SX1508_I2C_ADDR, [0x10, 0x1c])    # b6:4=0b001, b3=1, b1=1
+    # RegLEDDriverEnable
+    I2C.write_command(SX1508_I2C_ADDR, [0x11, SX_LEDS]) # b6:4=0b001, b3=1, b1=1
+    # RegIOn1..3
+    I2C.write_command(SX1508_I2C_ADDR, [0x17, 0x00])    # LED1(green) off
+    I2C.write_command(SX1508_I2C_ADDR, [0x19, 0x00])    # LED2(red) off
+    I2C.write_command(SX1508_I2C_ADDR, [0x1c, 0x00])    # LED3(blue) off
+    # RegData
+    I2C.write_command(SX1508_I2C_ADDR, [0x08, MASK_SX_LEDS])
+  end
+
+  def led(color)
+    @led[color]
+  end
+end
+class Battery
+  def instance
+    $_bat = Battery.new unless $_bat
+    $_bat
+  end
+end

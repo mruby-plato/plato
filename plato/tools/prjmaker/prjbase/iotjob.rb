@@ -12,13 +12,12 @@ class ISensor
   # Get sensing data (or cached data)
   # isensor.read #=> Float/Array
   # <params>
+  #   none.
   # <return>
   #   Float   Single value
   #   Array   List of values
   def read
-    unless @value then
-      @value = _read
-    end
+    @value = _read unless @value
     return @value
   end
 
@@ -48,7 +47,7 @@ class IlluminanceSensor < ISensor
   # IlliminanceSensor.new(sensor) #=> IlliminanceSensor
   #   sensor: Sensor class
   def initialize(sensor)
-    @illu = sensor.new
+    @illu = sensor.instance
     @type = :illuminance
   end
 
@@ -67,7 +66,7 @@ class TemperatureSensor < ISensor
   # TemperatureSensor.new(sensor) #=> TemperatureSensor
   #   sensor: Sensor class
   def initialize(sensor)
-    @temp = sensor.new
+    @temp = sensor.instance
     @type = :temperature
   end
 
@@ -83,7 +82,7 @@ class AccelerationSensor < ISensor
   # AccelerationSensor.new(sensor) #=> AccelerationSensor
   #   sensor: Sensor class
   def initialize(sensor)
-    @accel = sensor.new
+    @accel = sensor.instance
     @type = :acceleration
   end
 
@@ -102,7 +101,7 @@ class HumiditySensor < ISensor
   # HumiditySensor.new(sensor) #=> HumiditySensor
   #   sensor: Sensor class
   def initialize(sensor)
-    @hum = sensor.new
+    @hum = sensor.instance
     @type = :humidity
   end
 
@@ -117,7 +116,7 @@ class AirPressureSensor < ISensor
   # AirPressureSensor.new(sensor) #=> AirPressureSensor
   #   sensor: Sensor class
   def initialize(sensor)
-    @sensor = sensor.new
+    @sensor = sensor.instance
     @type = :air_pressure
   end
 
@@ -132,7 +131,7 @@ class AngleSensor < ISensor
   # AngleSensor.new(sensor) #=> AngleSensor
   #   sensor: Sensor class
   def initialize(sensor)
-    @ang = sensor.new
+    @ang = sensor.instance
     @type = :angle
     @angle_crit = []      # criteria angle
     @save_angle = []      # angle for save value
@@ -236,7 +235,7 @@ class VibrationSensor < ISensor
   # VibrationSensor.new(sensor) #=> VibrationSensor
   #   sensor: Sensor class
   def initialize(sensor)
-    @vib = sensor.new
+    @vib = sensor.instance
     @type = :vibration
     @vib_status = false                                  # vibration status OFF: false, ON: true
     @vib_count = 0                                       # detect vibration count
@@ -338,6 +337,30 @@ class VibrationSensor < ISensor
   def setup
     @vib.setup
     reset_accel_criteria                                 # measurement reference value
+  end
+end
+
+BATTERY_LOW = 10  # 10%
+
+# BatteryLevel class
+class BatteryLevel < ISensor
+  # BatteryLevel.new(bat) #=> BatteryLevel
+  # <params>
+  #   bat:    Battery object
+  def initialize(bat)
+    @bat = bat.instance
+    @type = :battery
+  end
+
+  # battery._read #=> Fixnum
+  def _read
+    level = @bat.level
+    [level <= BATTERY_LOW, level]
+  end
+
+  # battery.setup
+  def setup
+    @bat.level
   end
 end
 
@@ -507,9 +530,7 @@ class BluetoothAction
   def initialize(job, sensors)
     use_sensors = []
     job.sensors.each{|job_sensor|
-      if sensors.index(job_sensor.type) then
-        use_sensors.push(job_sensor)
-      end
+      use_sensors.push(job_sensor) if sensors.index(job_sensor.type)
     }
     @sensors = use_sensors
   end
@@ -570,39 +591,22 @@ end
 
 # IoT Job class
 class IoTJob
+  attr_reader :sensors
+  attr_reader :timings
+  attr_reader :actions
+  attr_reader :name
+
   # IoTJob.new(name, enable)
   #   name:   Name of IoTJob
   #   enable: Initial state of IoT job.
   #             == true:  enable (as default)
   #             == false: disable
   def initialize(name, enable = true)
-    @temporary1 = 0            # temporary for mruby/c's bug
-    @temporary2 = 0            # temporary for mruby/c's bug
     @name = name
     @enable = enable
     @sensors = []
     @timings = []
     @actions = []
-  end
-
-  # Get sensor list
-  def sensors
-    return @sensors
-  end
-
-  # Get timing list
-  def timings
-    return @timings
-  end
-
-  # Get action list
-  def actions
-    return @actions
-  end
-
-  # Get job name
-  def name
-    return @name
   end
 
   # iotjob.enable(ena) #=> true/false
