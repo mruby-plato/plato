@@ -13,6 +13,13 @@ PLATO_UI = 'plato-ui'
 puts "<< mkenv.rb >>"
 
 #
+# user costomize
+#
+
+# Location of `MRB Writer` repository
+$writer_repo = File.join('c:/', 'git', 'mimaki', 'ble_transfer_win')
+
+#
 # functions
 #
 
@@ -50,6 +57,9 @@ instdir = ARGV[0] ? ARGV[0] : File.join($home, 'plato2')
 FileUtils.mkdir_p(instdir)
 puts "instdir: '#{instdir}'"
 
+# Setup MRBWriter module directory
+$writer_dir = File.join($writer_repo, 'SenstickWriter', 'bin', 'Debug') if $platform == :win
+
 # make sub projects
 
 ## Plato UI
@@ -72,7 +82,6 @@ puts 'build Plato UI...'
 
 # $PLATO/.plato/tools
 #   prjmaker.rb
-#   mrbwrite.exe
 #   mrbc201.exe / mrbc201
 puts 'copy tools...'
 _plato_dir = File.join(instdir, '.plato')
@@ -82,14 +91,13 @@ FileUtils.mkdir_p(tools_dir)
 [
   File.join(srcroot, 'plato', 'tools', 'prjmaker', 'prjmaker.rb'),
   File.join(srcroot, 'plato', 'tools', 'utils', 'makebin.rb'),
-  File.join(srcroot, 'plato', 'tools', 'bin', 'mrbwrite' + $exe),
   File.join(srcroot, 'plato', 'tools', 'bin', 'mrbc201' + $exe)
 ].each {|file|
   _cp(file, File.join(tools_dir, File.basename(file)))
 }
 # tools/mgemlist
 # _cp(File.join(srcroot, 'plato', 'tools', 'boxmgem', 'mgemlist'), File.join(tools_dir, 'mgemlist'))
-
+FileUtils.cp_r($writer_dir, File.join(tools_dir, 'mrbwriter')) if $writer_dir
 
 # $PLATO/.plato/prjbase
 #   Rakefile
