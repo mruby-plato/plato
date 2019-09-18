@@ -354,3 +354,7 @@ end
 # `#{code} #{platoroot} #{app_edge_rb} #{app_edge_init_rb} #{app_bridge_rb} #{app_bridge_init_rb}`
 `#{code} #{platoroot} #{app_edge_rb} #{app_bridge_rb} #{app_bridge_init_rb}`
 $logger.info 'VSCode launched.'
+
+rescue => e
+  $logger.error e
+end
