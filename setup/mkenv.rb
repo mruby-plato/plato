@@ -17,7 +17,7 @@ puts "<< mkenv.rb >>"
 #
 
 # Location of `MRB Writer` repository
-$writer_repo = File.join('c:/', 'git', 'mimaki', 'ble_transfer_win')
+$writer_repo = File.join('c:/', 'git', 'kaz0505', 'ble_transfer_win')
 
 #
 # functions
@@ -82,6 +82,7 @@ puts 'build Plato UI...'
 
 # $PLATO/.plato/tools
 #   prjmaker.rb
+#   makebin.rb
 #   mrbc201.exe / mrbc201
 puts 'copy tools...'
 _plato_dir = File.join(instdir, '.plato')
