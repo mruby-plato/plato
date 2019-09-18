@@ -240,8 +240,9 @@ def hex2str(hex)
 end
 
 #
-# Make app_bridge_init.rb
+# Make app_edge_init_XXXXXX.rb
 #
+
 setting = appcfg['setting']
 bt_setting = setting['bt_setting']
 # Device name
@@ -253,13 +254,28 @@ proximity = grpid.length == 32 ? hex2str(grpid) : nil
 # Major / Minor
 devid = bt_setting['devid']
 devid = '000000' if devid.nil? || devid.length < 6
-major = hex2str(devid[0, 2])
-minor = hex2str(devid[2, 4])
+# major = hex2str(devid[0, 2])
+# minor = hex2str(devid[2, 4])
+# Device IDs
+devids = []
+devcnt = bt_setting['devcnt'].to_i
+devcnt = 1 if devcnt == 0
+devcnt.times {|i|
+  devids << sprintf("%06X", devid.to_i(16) + i)
+}
 
-appscript = ERB.new(File.read(File.join($prjbase, 'app_edge_init.erb'))).result
-app_edge_init_rb = File.join(prjdir, 'app_edge_init.rb')
-File.write(app_edge_init_rb, appscript)
-$logger.info "`#{app_edge_init_rb}` is written."
+major, minor = '', ''
+devids.each {|devid|
+  # Major / Minor
+  major = hex2str(devid[0, 2])
+  minor = hex2str(devid[2, 4])
+  # build script
+  rbfile = "app_edge_init_#{devid}.rb"
+  appscript = ERB.new(File.read(File.join($prjbase, 'app_edge_init.erb'))).result
+  app_edge_init_rb = File.join(prjdir, rbfile)
+  File.write(app_edge_init_rb, appscript)
+  $logger.info "`#{rbfile}` is written."
+}
 
 #
 # Make app_bridge_init.rb
@@ -300,10 +316,10 @@ mrblib_rb = File.join($prjbase, 'mrblib.rb')
 iotjob_rb = File.join($prjbase, 'iotjob.rb')
 makebin_rb = File.join(platotool, "makebin.rb")
 
-app_edge_init_mrb = File.join(prjdir, 'app_edge_init.mrb')
+app_edge_init_mrb = File.join(bindir, 'app_edge_init.mrb')
 app_edge_bg_mrb = File.join($prjbase, 'app_edge_bg.mrb')
-app_edge_mrb = File.join(prjdir, 'app_edge.mrb')
-app_bin = File.join(prjdir, 'mrbapp.bin')
+app_edge_mrb = File.join(bindir, 'app_edge.mrb')
+# app_edge_bin = File.join(prjdir, 'mrbapp.bin')
 
 # $logger.info app_edge_bg_rb
 # $logger.info mrblib_rb
@@ -314,8 +330,8 @@ app_bin = File.join(prjdir, 'mrbapp.bin')
 # $logger.info app_edge_bg_mrb
 # $logger.info app_edge_mrb
 
-`#{mrbc201} -E -o #{app_edge_init_mrb} #{mrblib_rb} #{iotjob_rb} #{app_edge_init_rb}`
-$logger.info "`#{app_edge_init_rb}` is compiled."
+# `#{mrbc201} -E -o #{app_edge_init_mrb} #{mrblib_rb} #{iotjob_rb} #{app_edge_init_rb}`
+# $logger.info "`#{app_edge_init_rb}` is compiled."
 
 `#{mrbc201} -E -o #{app_edge_bg_mrb} #{app_edge_bg_rb}`
 $logger.info "`#{app_edge_bg_rb}` is compiled."
@@ -323,8 +339,16 @@ $logger.info "`#{app_edge_bg_rb}` is compiled."
 `#{mrbc201} -E -o #{app_edge_mrb} #{app_edge_rb}`
 $logger.info "`#{app_edge_rb}` is compiled."
 
-`ruby #{makebin_rb} #{app_bin} #{app_edge_init_mrb} #{app_edge_bg_mrb} #{app_edge_mrb}`
-$logger.info "#{app_bin} is generated."
+devids.each {|devid|
+  rbfile = "app_edge_init_#{devid}.rb"
+  app_edge_init_rb = File.join(prjdir, rbfile)
+  `#{mrbc201} -E -o #{app_edge_init_mrb} #{mrblib_rb} #{iotjob_rb} #{app_edge_init_rb}`
+  $logger.info "`#{app_edge_init_rb}` is compiled."
+
+  app_edge_bin = File.join(bindir, "edge_#{devid}.bin")
+  `ruby #{makebin_rb} #{app_edge_bin} #{app_edge_init_mrb} #{app_edge_bg_mrb} #{app_edge_mrb}`
+  $logger.info "#{app_edge_bin} is generated."
+}
 
 `#{mrbc201} -E #{app_bridge_init_rb}`
 $logger.info "`#{app_bridge_init_rb}` is compiled."
@@ -342,7 +366,8 @@ if $platform == :mac
     code = "open -a /Applications/Visual\\ Studio\\ Code.app"
   end
 end
-`#{code} #{platoroot} #{app_edge_rb} #{app_edge_init_rb} #{app_bridge_rb} #{app_bridge_init_rb}`
+# `#{code} #{platoroot} #{app_edge_rb} #{app_edge_init_rb} #{app_bridge_rb} #{app_bridge_init_rb}`
+`#{code} #{platoroot} #{app_edge_rb} #{app_bridge_rb} #{app_bridge_init_rb}`
 $logger.info 'VSCode launched.'
 
 
