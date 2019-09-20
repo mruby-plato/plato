@@ -335,12 +335,18 @@ devids.each {|devid|
   $logger.info "#{app_edge_bin} is generated."
 }
 
-`#{mrbc201} -E #{app_bridge_init_rb}`
+app_bridge_init_mrb = File.join(bindir, 'app_bridge_init.mrb')
+app_bridge_mrb = File.join(bindir, 'app_bridge.mrb')
+
+`#{mrbc201} -E -o #{app_bridge_init_mrb} #{app_bridge_init_rb}`
 $logger.info "`#{app_bridge_init_rb}` is compiled."
 
-`#{mrbc201} -E #{app_bridge_rb}`
+`#{mrbc201} -E -o #{app_bridge_mrb} #{app_bridge_rb}`
 $logger.info "`#{app_bridge_rb}` is compiled."
 
+app_bridge_bin = File.join(bindir, "bridge.bin")
+`ruby #{makebin_rb} #{app_bridge_bin} #{app_bridge_init_mrb} #{app_bridge_mrb}`
+$logger.info "#{app_bridge_bin} is generated."
 
 #
 # Launch Visual Studio Code

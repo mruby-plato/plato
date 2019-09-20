@@ -1,8 +1,49 @@
-$app = BridgeApplication.new
+class RTL8771B
+  include Plato::GNSS
+end
 
-loop {
-  # run bridge
-  $app.run
-  # Handling the idle state in main loop
-  $app.manage_power
-}
+begin
+  # Show version
+  Logger.puts MRUBY_COPYRIGHT
+  Logger.puts "  Version: #{MRUBY_VERSION}"
+  Logger.puts "  Platform: #{MRUBY_PLATFORM}"
+
+  # power on GPS (RTL8771B)
+  gps_vdd = Plato::DigitalIO.new(Plato::GPIO.pin(1, 0))
+  gps_rst = Plato::DigitalIO.new(Plato::GPIO.pin(0, 16))
+  gps_vdd.high
+  gps_rst.low
+  Plato::Machine.delay(5)
+  gps_rst.high
+  Plato::Machine.delay(100)
+
+  # open UART
+  uart = Plato::Serial.open(9600)
+
+  gps = RTL8771B.new([:GGA])
+
+  Battery.level # dummy read
+
+  stime = Plato::Machine.millis
+  btime = stime
+  loop {
+    System::exit?
+
+    begin
+      s = uart.gets
+      if s && s.length > 0
+        gps.parse(s)
+        GC.start
+      end
+
+      tick= Plato::Machine.millis
+
+      Plato::Machine.delay(10)
+    rescue => e
+      Logger.puts e.inspect
+    end
+  }
+
+rescue => e
+  Logger.puts e.inspect
+end
