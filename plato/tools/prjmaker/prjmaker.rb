@@ -310,7 +310,6 @@ platotool = File.join(platoroot, '.plato', 'tools')
 mrbc201 = File.join(platotool, "mrbc201#{$exe}")
 
 app_edge_bg_rb = File.join($prjbase, 'app_edge_bg.rb')
-mrblib_rb = File.join($prjbase, 'mrblib.rb')
 iotjob_rb = File.join($prjbase, 'iotjob.rb')
 makebin_rb = File.join(platotool, "makebin.rb")
 
@@ -327,7 +326,7 @@ $logger.info "`#{app_edge_rb}` is compiled."
 devids.each {|devid|
   rbfile = "app_edge_init_#{devid}.rb"
   app_edge_init_rb = File.join(prjdir, rbfile)
-  `#{mrbc201} -E -o #{app_edge_init_mrb} #{mrblib_rb} #{iotjob_rb} #{app_edge_init_rb}`
+  `#{mrbc201} -E -o #{app_edge_init_mrb} #{iotjob_rb} #{app_edge_init_rb}`
   $logger.info "`#{app_edge_init_rb}` is compiled."
 
   app_edge_bin = File.join(bindir, "edge_#{devid}.bin")

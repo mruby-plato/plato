@@ -33,7 +33,6 @@ plato2/
 |   |   +-- app_edge_bg.erb
 |   |   +-- app_edge_init.erb
 |   |   +-- iotjob.rb
-|   |   +-- mrblib.rb
 |   +-- tools/            Plato2 tools directory
 |   |   +-- makebin.rb    MRB binder
 |   |   +-- mrbc201       mruby compiler
