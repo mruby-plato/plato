@@ -123,7 +123,7 @@ SENSORS = {
 }
 TIMINGS = {
   :interval     => {:cls => 'IntervalTiming',     :src => 'timings/interval_timing.rb'},
-  :ontime       => {:cls => 'OnTimeTiming'},
+  :ontime       => {:cls => 'OnTimeTiming',       :src => 'timings/ontime_timing.rb'},
   :part_time    => {:cls => 'PartTimeTiming'},
   :trigger      => {:cls => 'TriggerTiming',      :src => ['timings/trigger_timing.rb', 'timings/interval_timing.rb']},
 }
@@ -185,8 +185,14 @@ def build_job_timing(tim, t)
     end
     timing << tab("#{header}TriggerTiming.new(job, #{sec}, judges, #{params['trig_off']})", t)
 
-  when 'on_time'
-    # TODO: implements
+  when 'ontime'
+    ontimes = []
+    params['times'].sort.each {|tm|
+      h, m = tm.split(':').map {|t| t.to_i}
+      ontimes << "DateTime.time(#{h}, #{m})"
+    }
+    tab("#{header}OnTimeTiming.new([#{ontimes.join(', ')}])", t)
+
   when 'part_time'
     # TODO: implements
   end
