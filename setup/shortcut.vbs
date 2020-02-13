@@ -6,8 +6,14 @@ if args.Count = 0 then
 end if
 
 set objShell = WScript.CreateObject("WScript.Shell")
+' Create shortcut on Desktop
 strDesktop = objShell.SpecialFolders("Desktop")
 strFileName = strDesktop + "\Plato2 IDE.lnk"
+set objShortcut = objShell.CreateShortcut(strFileName)
+objShortcut.TargetPath = args(0) + "\.plato\plato2-win32-ia32\plato2.exe"
+objShortcut.Save
+' Create shortcut into install directory
+strFileName = args(0) + "\Plato2 IDE.lnk"
 set objShortcut = objShell.CreateShortcut(strFileName)
 objShortcut.TargetPath = args(0) + "\.plato\plato2-win32-ia32\plato2.exe"
 objShortcut.Save
