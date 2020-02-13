@@ -107,34 +107,40 @@ $logger.info "App.dir: #{prjdir}"
 
 JOBS = []
 SENSORS = {
-  :acceleration => {:cls => 'AccelerationSensor', :dev => 'ACCELERATION_SENSOR'},
+  :acceleration => {:cls => 'AccelerationSensor', :dev => 'ACCELERATION_SENSOR',  :src => 'sensors/acceleration_sensor.rb'},
   :gyro         => {:cls => 'GyroSensor',         :dev => 'GYRO_SENSOR'},
-  :geomagnetism => {:cls => 'GeomagnetismSensor', :dev => 'GEOMAGNETISM_SENSOR'}, 
-  :temperature  => {:cls => 'TemperatureSensor',  :dev => 'TEMPERATURE_SENSOR'},
-  :humidity     => {:cls => 'HumiditySensor',     :dev => 'HUMIDITY_SENSOR'},
-  :air_pressure => {:cls => 'AirPressureSensor',  :dev => 'AIR_PRESSURE_SENSOR'},
-  :illuminance  => {:cls => 'IlluminanceSensor',  :dev => 'ILLUMINANCE_SENSOR'},
+  :geomagnetism => {:cls => 'GeomagnetismSensor', :dev => 'GEOMAGNETISM_SENSOR'},
+  :temperature  => {:cls => 'TemperatureSensor',  :dev => 'TEMPERATURE_SENSOR',   :src => 'sensors/temperature_sensor.rb'},
+  :humidity     => {:cls => 'HumiditySensor',     :dev => 'HUMIDITY_SENSOR',      :src => 'sensors/humidity_sensor.rb'},
+  :air_pressure => {:cls => 'AirPressureSensor',  :dev => 'AIR_PRESSURE_SENSOR',  :src => 'sensors/air_pressure_sensor.rb'},
+  :illuminance  => {:cls => 'IlluminanceSensor',  :dev => 'ILLUMINANCE_SENSOR',   :src => 'sensors/illuminance_sensor.rb'},
   :gps_gga      => {:cls => 'GPSGGA',             :dev => 'GPS_DEVICE'},
   :gps_vtg      => {:cls => 'GPSVTG',             :dev => 'GPS_DEVICE'},
-  :battery      => {:cls => 'Battery',            :dev => ''},
+  :vibration    => {:cls => 'VibrationSensor',    :dev => 'ACCELERATION_SENSOR',  :src => ['sensors/vibration_sensor.rb', 'timings/interval_timing.rb']},
+  :angle        => {:cls => 'AngleSensor',        :dev => 'ACCELERATION_SENSOR',  :src => 'sensors/angle_sensor.rb'},
+  :battery      => {:cls => 'Battery',            :dev => '',                     :src => 'sensors/battery_level.rb'},
   :custom       => {:cls => 'Custom',             :dev => ''},
 }
-# TIMINGS = {
-#   :interval     => {:cls => 'IntervalTiming'},
-#   :ontime       => {:cls => 'OnTimeTiming'},
-#   :part_time    => {:cls => 'PartTimeTiming'},
-#   :trigger      => {:cls => 'TriggerTiming'},
-# }
-# ACTIONS = {
-#   :bluetooth    => {:cls => 'BluetoothAction'},
-#   :onoff        => {:cls => 'OnOffAction'},
-#   :gpio         => {:cls => 'GPIOAction'},
-# }
+TIMINGS = {
+  :interval     => {:cls => 'IntervalTiming',     :src => 'timings/interval_timing.rb'},
+  :ontime       => {:cls => 'OnTimeTiming',       :src => 'timings/ontime_timing.rb'},
+  :part_time    => {:cls => 'PartTimeTiming'},
+  :trigger      => {:cls => 'TriggerTiming',      :src => ['timings/trigger_timing.rb', 'timings/interval_timing.rb']},
+}
+ACTIONS = {
+  :bluetooth    => {:cls => 'BluetoothAction',    :src => 'actions/bluetooth_action.rb'},
+  :onoff        => {:cls => 'OnOffAction',        :src => 'actions/on_off_action.rb'},
+  :gpio         => {:cls => 'GPIOAction'},
+}
+
+$libsrcs = ['iotjobcore.rb']
 
 # build up IoTJob's sensors
 def build_job_sensor(sen, t)
   # tab('ISensor.new(:' + sen['type'] + '),', t)
   sensor = SENSORS[sen['type'].to_sym]
+  # Add library source
+  $libsrcs << sensor[:src] if sensor[:src] # add libsrcs
   tab("job.sensors << #{sensor[:cls]}.new(#{sensor[:dev]})", t)
 end
 
@@ -143,9 +149,14 @@ MINUTE_SECONDS = 60
 
 # build up IoTJob's timings
 def build_job_timing(tim, t)
+  # Add library source
+  sym = tim['type'].to_sym
+  $libsrcs << TIMINGS[sym][:src] if TIMINGS[sym][:src] # add libsrcs
+
   # timing = TIMINGS[tim['type'].to_sym]
   params = tim['params']
   header = 'job.timings << '
+
   case tim['type']
   when 'interval'
     sec = params['interval_time'].to_i * 1000 # millisecond -> second
@@ -174,8 +185,14 @@ def build_job_timing(tim, t)
     end
     timing << tab("#{header}TriggerTiming.new(job, #{sec}, judges, #{params['trig_off']})", t)
 
-  when 'on_time'
-    # TODO: implements
+  when 'ontime'
+    ontimes = []
+    params['times'].sort.each {|tm|
+      h, m = tm.split(':').map {|t| t.to_i}
+      ontimes << "DateTime.time(#{h}, #{m})"
+    }
+    tab("#{header}OnTimeTiming.new([#{ontimes.join(', ')}])", t)
+
   when 'part_time'
     # TODO: implements
   end
@@ -183,6 +200,10 @@ end
 
 # build up IoTJob's actions
 def build_job_action(act, t)
+  # Add library source
+  sym = act['type'].to_sym
+  $libsrcs << ACTIONS[sym][:src] if ACTIONS[sym][:src]
+
   # action = ACTIONS[act['type'].to_sym]
   params = act['params']
   header = 'job.actions << '
@@ -230,6 +251,15 @@ appscript = ERB.new(File.read(File.join($prjbase, 'app_edge.erb'))).result
 app_edge_rb = File.join(prjdir, 'app_edge.rb')
 File.write(app_edge_rb, appscript)
 $logger.info "`#{app_edge_rb}` is written."
+
+# build up iotjob.rb
+$logger.debug "libsrcs: `#{$libsrcs}`"
+$libsrcs = $libsrcs.flatten.uniq
+iotjob_srcs = []
+$libsrcs.each {|src|
+  iotjob_srcs << File.read(File.join($prjbase, 'iotjob', src))
+}
+File.write(File.join(prjdir, 'iotjob.rb'), iotjob_srcs.join("\n"))
 
 def hex2str(hex)
   str = ''
@@ -310,8 +340,7 @@ platotool = File.join(platoroot, '.plato', 'tools')
 mrbc201 = File.join(platotool, "mrbc201#{$exe}")
 
 app_edge_bg_rb = File.join($prjbase, 'app_edge_bg.rb')
-mrblib_rb = File.join($prjbase, 'mrblib.rb')
-iotjob_rb = File.join($prjbase, 'iotjob.rb')
+iotjob_rb = File.join(prjdir, 'iotjob.rb')
 makebin_rb = File.join(platotool, "makebin.rb")
 
 app_edge_init_mrb = File.join(bindir, 'app_edge_init.mrb')
@@ -327,7 +356,7 @@ $logger.info "`#{app_edge_rb}` is compiled."
 devids.each {|devid|
   rbfile = "app_edge_init_#{devid}.rb"
   app_edge_init_rb = File.join(prjdir, rbfile)
-  `#{mrbc201} -E -o #{app_edge_init_mrb} #{mrblib_rb} #{iotjob_rb} #{app_edge_init_rb}`
+  `#{mrbc201} -E -o #{app_edge_init_mrb} #{iotjob_rb} #{app_edge_init_rb}`
   $logger.info "`#{app_edge_init_rb}` is compiled."
 
   app_edge_bin = File.join(bindir, "edge_#{devid}.bin")
