@@ -130,7 +130,7 @@ TIMINGS = {
 ACTIONS = {
   :bluetooth    => {:cls => 'BluetoothAction',    :src => 'actions/bluetooth_action.rb'},
   :onoff        => {:cls => 'OnOffAction',        :src => 'actions/on_off_action.rb'},
-  :gpio         => {:cls => 'GPIOAction'},
+  :gpio         => {:cls => 'GPIOAction',         :src => 'actions/gpio_action.rb'},
 }
 
 $libsrcs = ['iotjobcore.rb']
@@ -198,6 +198,8 @@ def build_job_timing(tim, t)
   end
 end
 
+LEDCOLORS = ['nil', ':red', ':green', ':blue']
+
 # build up IoTJob's actions
 def build_job_action(act, t)
   # Add library source
@@ -216,7 +218,7 @@ def build_job_action(act, t)
   when 'onoff'
     tab("#{header}OnOffAction.new(#{JOBS[params['jobid'].to_i].inspect}, #{params['onoff'].to_i != 0})", t)
   when 'gpio'
-    # TODO: implements
+    tab("#{header}GPIOAction.new(#{LEDCOLORS[params['pin'].to_i]}, :#{params['value']})", t)
   end
 end
 
