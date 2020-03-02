@@ -114,7 +114,7 @@ SENSORS = {
   :humidity     => {:cls => 'HumiditySensor',     :dev => 'HUMIDITY_SENSOR',      :src => 'sensors/humidity_sensor.rb'},
   :air_pressure => {:cls => 'AirPressureSensor',  :dev => 'AIR_PRESSURE_SENSOR',  :src => 'sensors/air_pressure_sensor.rb'},
   :illuminance  => {:cls => 'IlluminanceSensor',  :dev => 'ILLUMINANCE_SENSOR',   :src => 'sensors/illuminance_sensor.rb'},
-  :gps_gga      => {:cls => 'GPSGGA',             :dev => 'GPS_DEVICE'},
+  :gps_gga      => {:cls => 'GPSGGA',             :dev => 'GPS_DEVICE',           :src => 'sensors/gps_gga.rb'},
   :gps_vtg      => {:cls => 'GPSVTG',             :dev => 'GPS_DEVICE'},
   :vibration    => {:cls => 'VibrationSensor',    :dev => 'ACCELERATION_SENSOR',  :src => ['sensors/vibration_sensor.rb', 'timings/interval_timing.rb']},
   :angle        => {:cls => 'AngleSensor',        :dev => 'ACCELERATION_SENSOR',  :src => 'sensors/angle_sensor.rb'},
