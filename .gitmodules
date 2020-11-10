@@ -1,3 +1,6 @@
 [submodule "plato-ui"]
 	path = plato-ui
 	url = https://scskq.backlog.jp/git/SUPPO_IN/plato-ui.git
+[submodule "plato-web"]
+	path = plato-web
+	url = https://scskq.backlog.jp/git/SUPPO_IN/plato-web.git

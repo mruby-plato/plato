@@ -92,10 +92,29 @@ FileUtils.mkdir_p(tools_dir)
 [
   File.join(srcroot, 'plato', 'tools', 'prjmaker', 'prjmaker.rb'),
   File.join(srcroot, 'plato', 'tools', 'utils', 'makebin.rb'),
-  File.join(srcroot, 'plato', 'tools', 'bin', 'mrbc201' + $exe)
+  File.join(srcroot, 'plato', 'tools', 'bin', 'mrbc201' + $exe),
+  File.join(srcroot, 'plato-web', 'plato-web.html'),
+  File.join(srcroot, 'plato-web', 'plato-web-ja.html'),
 ].each {|file|
   _cp(file, File.join(tools_dir, File.basename(file)))
 }
+tools_js_dir = File.join(tools_dir, 'js')
+FileUtils.mkdir_p(tools_js_dir)
+[
+  File.join(srcroot, 'plato-web', 'js', 'bluejelly.js'),
+  File.join(srcroot, 'plato-web', 'js', 'bj-plato.js'),
+  File.join(srcroot, 'plato-web', 'js', 'plato-web.js'),
+].each {|file|
+  _cp(file, File.join(tools_js_dir, File.basename(file)))
+}
+tools_css_dir = File.join(tools_dir, 'css')
+FileUtils.mkdir_p(tools_css_dir)
+[
+  File.join(srcroot, 'plato-web', 'css', 'plato-web.css'),
+].each {|file|
+  _cp(file, File.join(tools_css_dir, File.basename(file)))
+}
+
 # tools/mgemlist
 # _cp(File.join(srcroot, 'plato', 'tools', 'boxmgem', 'mgemlist'), File.join(tools_dir, 'mgemlist'))
 FileUtils.cp_r($writer_dir, File.join(tools_dir, 'mrbwriter')) if $writer_dir
