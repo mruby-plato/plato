@@ -174,6 +174,8 @@ when :win
   `wscript #{File.join(File.dirname($0), 'shortcut.vbs')} #{instdir}`
 when :mac
   `ln -s #{File.join($plato_dst, 'plato2.app')} #{File.join('~/Applications', 'Plato2\ IDE.app')}`
+  `ln -s #{File.join($plato_dst, 'plato2.app')} #{File.join(instdir, 'Plato2\ IDE.app')}`
+  `ln -s #{File.join(tools_dir, 'plato-viewer.html')} #{File.join(instdir, 'plato-viewer.html')}`
 end
 
 puts $0 + ' completed.'
