@@ -30,7 +30,8 @@ class TriggerTiming
     sensors = []
     @judges.each{|judge|
       job.sensors.each{|sensor|
-        sensors << sensor if sensor.type == judge[:type]
+        sentyp = judge[:type].to_s.split('__')[0] # get sensor type
+        sensors << sensor if sensor.type == sentyp.to_sym
       }
     }
     @sensors = sensors
@@ -50,8 +51,10 @@ class TriggerTiming
     # Get sensor values
     values = {}
     @sensors.each{|sensor|
-      values[sensor.type] = (sensor.type === :angle) ? [sensor.max, sensor.min] : sensor.read   # TODO: refactpr max/min
+      sensor.clear  # refresh sensor value
+      values[sensor.type] = sensor.read
     }
+
     # Judge trigger
     timing = judge_value(values)
     trigger = edge_decision(timing)
@@ -71,22 +74,18 @@ class TriggerTiming
     jud_result = false
     timing = true
     @judges.each{|judge|
-      return timing = false unless judge[:type] && judge[:value]
+      return false unless judge[:type] && judge[:value]
       ref_val = judge[:value].to_f
-      if judge[:type] === :angle
-        sen_val = case judge[:cond]
-          when :gt, :ge, :eq, :ne;  values[judge[:type]][0] # max
-          else;                     values[judge[:type]][1] # min
-        end
-      elsif judge[:type] === :vibration
-        sen_val = values[judge[:type]][1]
+      types = judge[:type].to_s.split('__')
+      sentyp = types[0].to_sym                # Symbol of sensor type
+      vidx = types[1] ? types[1].to_i : nil   # index in array of values
+      if sentyp == :vibration
+        sen_val = values[:vibration][1] # vibration.count
+      elsif vidx
+        sen_val = values[sentyp][vidx]  # values[type][vidx] (e.g., angle.x, y, z)
       else
-        sen_val = values[judge[:type]]
+        sen_val = values[sentyp]        # values[type]
       end
-      # if $DEBUG
-      #   print "#{judge[:and_or]} " if judge[:and_or]
-      #   print "#{judge[:type]}(#{sen_val}) _#{judge[:cond]}_ #{judge[:value]}"
-      # end
       case judge[:cond]
         when :gt; jud_result = (sen_val >  ref_val) # greater than
         when :ge; jud_result = (sen_val >= ref_val) # greater than or equal
@@ -96,7 +95,9 @@ class TriggerTiming
         when :nq; jud_result = (sen_val != ref_val) # not equal
         else;     jud_result = false                # others
       end
-      # puts " => #{jud_result.to_s}" if $DEBUG
+      print "#{judge[:and_or]} " if judge[:and_or]
+      print "#{sentyp}(#{sen_val}) _#{judge[:cond]}_ #{judge[:value]}"
+      puts " => #{jud_result.to_s}"
 
       # and/or multiple judgment
       case judge[:and_or]

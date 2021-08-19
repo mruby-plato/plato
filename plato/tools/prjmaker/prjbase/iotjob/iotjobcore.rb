@@ -39,6 +39,10 @@ class ISensor
     @value = v
   end
 
+  def timing?
+    :none
+  end
+
   def setup
   end
 end
@@ -93,21 +97,26 @@ class IoTJob
   def run
     return false unless @enable
 
+    # Read data
+    @sensors.each {|sensor|
+      sensor.timing?
+    }
+
     trigger = :none
-    @timings.each{|timing|
+    @timings.each {|timing|
       trigger = timing.timing?
       break if trigger != :none
     }
     if trigger != :none
-      @actions.each{|action|
+      @actions.each {|action|
         action.run(trigger)
       }
+      # Clear sensor values
+      # TODO: Re-design clear timing
+      @sensors.each {|sensor|
+        sensor.clear
+      }
     end
-    # Clear sensor values
-    # TODO: Re-design clear timing
-    @sensors.each{|sensor|
-      sensor.clear
-    }
     true
   end
 end

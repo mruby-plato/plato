@@ -37,8 +37,8 @@ class BluetoothAction
         when :humidity;     BLE.humidity = sensor.read
         when :air_pressure; BLE.air_pressure = sensor.read
         when :illuminance;  BLE.illuminance = sensor.read
-        when :gpsgga;       BLE.gps_gga = sensor.read
-        when :gpsvtg;       BLE.gps_vtg = sensor.read
+        when :location;     BLE.gps_gga = sensor.read
+        when :velocity;     BLE.gps_vtg = sensor.read
         when :battery;      BLE.battery = sensor.read
         when :vibration;    BLE.vibration = sensor.read
         else; # puts "Unknown sensor type (#{sensor.type})" if $DEBUG

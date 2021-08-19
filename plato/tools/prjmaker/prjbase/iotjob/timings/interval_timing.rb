@@ -9,7 +9,7 @@
 
 # IntervalTiming class
 class IntervalTiming
-  # IntervalTiming.new(cyvle) #=> IntervalTiming
+  # IntervalTiming.new(cycle) #=> IntervalTiming
   # <params>
   #   cycle:  interval time (milliseconds)
   def initialize(cycle)

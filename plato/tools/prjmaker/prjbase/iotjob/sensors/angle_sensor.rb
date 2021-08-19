@@ -81,7 +81,7 @@ class AngleSensor < ISensor
   # if reset_angle_criteria methode do, return angle is criteria angle
   # when return criteria angle, if don't set criteria angle, set criteria angle before return angle
   def read_angle(update = false)
-    accel = @ang.read_acceleration
+    accel = @ang.read_acceleration(update)
     angle = []
     unless accel.empty?
       x_square = accel[0] ** 2

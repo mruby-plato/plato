@@ -116,8 +116,8 @@ SENSORS = {
   :illuminance  => {:cls => 'IlluminanceSensor',  :dev => 'ILLUMINANCE_SENSOR',   :src => 'sensors/illuminance_sensor.rb'},
   :location     => {:cls => 'GPSGGA',             :dev => 'GPS_DEVICE',           :src => 'sensors/gps_gga.rb'},
   :velocity     => {:cls => 'GPSVTG',             :dev => 'GPS_DEVICE'},
-  :vibration    => {:cls => 'VibrationSensor',    :dev => 'ACCELERATION_SENSOR',  :src => ['sensors/vibration_sensor.rb', 'timings/interval_timing.rb']},
-  :angle        => {:cls => 'AngleSensor',        :dev => 'ACCELERATION_SENSOR',  :src => 'sensors/angle_sensor.rb'},
+  :vibration    => {:cls => 'VibrationSensor',    :dev => 'VIBRATION_SENSOR',     :src => ['sensors/vibration_sensor.rb', 'timings/interval_timing.rb']},
+  :angle        => {:cls => 'AngleSensor',        :dev => 'ANGLE_SENSOR',         :src => 'sensors/angle_sensor.rb'},
   :battery      => {:cls => 'Battery',            :dev => '',                     :src => 'sensors/battery_level.rb'},
   :custom       => {:cls => 'Custom',             :dev => ''},
 }

@@ -41,9 +41,12 @@ class VibrationSensor < ISensor
   # vibration.timing? => :none
   # when sampling time, detect vibration over reference
   def timing?
-    if @sampling.timing? === :on
+    if @sampling.timing? == :on
       vib = detect_vibration
-      @vib_count += 1 if @vib_status && !vib  # ON->OFF
+      # return when data not ready
+      return :none if vib.nil?
+      # count vibration when ON->OFF
+      @vib_count += 1 if @vib_status && !vib
       @vib_status = vib
     end
     return :none
@@ -58,20 +61,24 @@ class VibrationSensor < ISensor
 
   def clear
     @value = nil
-    @vib_count = 0 if @vib_read
+    @vib_count = 0 #if @vib_read
     @vib_read = false
   end
 
   # detect vibration occor
-  # return bool       vibration speed over criteria value, return true
-  #                   vibration speed over criteria value, or acceleration don't read return false
+  # return  true:   vibration detected
+  #         false:  vibration not detected
+  #         nil:    acceleration data not ready
   def detect_vibration
+    # read acceleration value
     accel = @vib.read_acceleration(true)
 
-    # checke acceleraton value
-    if accel.empty?
-      return false
-    end
+    # check acceleraton data ready
+    return nil if accel.nil? || accel.empty?
+#     if accel.nil? || accel.empty?
+# @cnt_fail += 1
+#       return nil
+#     end
     time = VM.tick
 
     # check vibration criteria
@@ -86,7 +93,7 @@ class VibrationSensor < ISensor
     hpf = []      # high pass filter
     speed = []
 
-    AXIS_SIZE.times{|i|
+    accel.size.times {|i|
       accel[i] -= vib_crit[i]
       lpf[i] = accel[i] unless lpf[i]
       prev_accel[i] = accel[i] unless prev_accel[i]
