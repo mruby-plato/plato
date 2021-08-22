@@ -96,6 +96,7 @@ FileUtils.mkdir_p(tools_dir)
   File.join(srcroot, 'plato-web', 'plato-web.html'),
   File.join(srcroot, 'plato-web', 'plato-web-ja.html'),
   File.join(srcroot, 'plato-web', 'plato-viewer.html'),
+  File.join(srcroot, 'plato-web', 'bt-checker.html'),
 ].each {|file|
   _cp(file, File.join(tools_dir, File.basename(file)))
 }
@@ -106,6 +107,7 @@ FileUtils.mkdir_p(tools_js_dir)
   File.join(srcroot, 'plato-web', 'js', 'bj-plato.js'),
   File.join(srcroot, 'plato-web', 'js', 'plato-web.js'),
   File.join(srcroot, 'plato-web', 'js', 'plato-viewer.js'),
+  File.join(srcroot, 'plato-web', 'js', 'plato-utility.js'),
 ].each {|file|
   _cp(file, File.join(tools_js_dir, File.basename(file)))
 }
@@ -176,6 +178,7 @@ when :mac
   `ln -s #{File.join($plato_dst, 'plato2.app')} #{File.join('~/Applications', 'Plato2\ IDE.app')}`
   `ln -s #{File.join($plato_dst, 'plato2.app')} #{File.join(instdir, 'Plato2\ IDE.app')}`
   `ln -s #{File.join(tools_dir, 'plato-viewer.html')} #{File.join(instdir, 'plato-viewer.html')}`
+  `ln -s #{File.join(tools_dir, 'bt-checker.html')} #{File.join(instdir, 'bt-checker.html')}`
 end
 
 puts $0 + ' completed.'
