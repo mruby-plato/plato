@@ -12,8 +12,18 @@ strFileName = strDesktop + "\Plato2 IDE.lnk"
 set objShortcut = objShell.CreateShortcut(strFileName)
 objShortcut.TargetPath = args(0) + "\.plato\plato2-win32-ia32\plato2.exe"
 objShortcut.Save
-' Create shortcut into install directory
+' Create `Plato` shortcut into install directory
 strFileName = args(0) + "\Plato2 IDE.lnk"
 set objShortcut = objShell.CreateShortcut(strFileName)
 objShortcut.TargetPath = args(0) + "\.plato\plato2-win32-ia32\plato2.exe"
+objShortcut.Save
+' Create `Plato-viewer.html` shortcut into install directory
+strFileName = args(0) + "\plato-viewer.lnk"
+set objShortcut = objShell.CreateShortcut(strFileName)
+objShortcut.TargetPath = args(0) + "\.plato\tools\plato-viewer.html"
+objShortcut.Save
+' Create `bt-checker.html` shortcut into install directory
+strFileName = args(0) + "\bt-checker.lnk"
+set objShortcut = objShell.CreateShortcut(strFileName)
+objShortcut.TargetPath = args(0) + "\.plato\tools\bt-checker.html"
 objShortcut.Save
