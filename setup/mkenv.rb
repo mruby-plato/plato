@@ -26,7 +26,7 @@ $writer_repo = File.join('c:/', 'git', 'kaz0505', 'ble_transfer_win')
 # _cp(src, dst)
 #   `cp -R <src> <dst>`
 def _cp(src, dst)
-  FileUtils.cp_r(src, dst, {:remove_destination => true})
+  FileUtils.cp_r(src, dst)#, {:remove_destination => true})
 rescue => e
   puts "warning: #{e}" if $DEBUG
 end
