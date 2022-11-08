@@ -34,7 +34,7 @@ class GPIOAction
         nil
     end
     if io
-      trigger == :on ? io.on : io.off
+      (trigger == :on || trigger == :high) ? io.on : io.off
     end
   end
 end
