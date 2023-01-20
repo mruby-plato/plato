@@ -10,21 +10,20 @@ Work in progress...
 
 ### 0. Requirements
 
-- [Ruby](https://www.ruby-lang.org/) 2.x
-- [GNU bison](https://www.gnu.org/software/bison/) 2.x
+- [Ruby](https://www.ruby-lang.org/) 3.x
 - [git](https://git-scm.com/) 2.x
 - [Microsoft Visual Studio Code](https://code.visualstudio.com/) 1.30 (or later)
 
 #### Windows only
 
-- [MinGW](http://www.mingw.org/)  2.3(or later)
+- [MinGW](http://www.mingw.org/)  2.3 (or later)
 
 
 ### 1. Download and initialize Plato2 develop environment
 
 ```bash
-$ git clone --recursive https://scskq.backlog.jp/git/SUPPO_IN/plato2.git
-$ cd plato2
+$ git clone --recursive https://github.com/mruby-plato/plato.git
+$ cd plato
 $ make init
 ```
 
