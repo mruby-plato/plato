@@ -1,3 +1,34 @@
-#
-# This Rakefile is dummy for test.
-#
+task "default" => "rebuild"
+
+# Setup environment
+task "env" do
+  $tooldir = File.join('..', '.plato', 'tools')
+
+  $platform = case RUBY_PLATFORM.downcase
+  when /mswin(?!ce)|mingw|cygwin|bccwin/
+    :windows
+  when /darwin/
+    :mac
+  when /linux/
+    :linux
+  else
+    :other
+  end
+  $open = $platform == :windows ? 'start' : 'open'
+end
+
+# Re-build Plato binary
+task "rebuild" => ["env"] do
+  # puts `ruby ../.plato/tools/rebuild.rb .`
+  puts `ruby #{$tooldir}/rebuild.rb .`
+end
+
+# Open plato web tool
+task "write" => ["env"] do
+  `#{$open} #{$tooldir}/plato-web.html`
+end
+
+# Open plato viewer
+task "view" => ["env"] do
+  `#{$open} #{$tooldir}/plato-viewer.html`
+end
